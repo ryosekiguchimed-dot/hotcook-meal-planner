@@ -1,27 +1,46 @@
 import Link from "next/link";
-import { weekPlan } from "@/lib/mealPlan";
+import { getMealPlanWeek, normalizeWeekKey } from "@/lib/mealPlans";
 
-export default function MenuPage() {
+type MenuPageProps = {
+  searchParams?: Promise<{ week?: string | string[] }>;
+};
+
+export default async function MenuPage({ searchParams }: MenuPageProps) {
+  const params = await searchParams;
+  const weekKey = normalizeWeekKey(params?.week);
+  const weekPlan = getMealPlanWeek(weekKey);
+
   return (
     <main className="screen">
       <header className="pageHeader">
         <Link className="backLink" href="/">
           ← トップ
         </Link>
-        <p className="eyebrow">1週間の夕食献立</p>
+        <p className="eyebrow">{weekPlan.label}の夕食献立</p>
         <h1>ホットクック週間プラン</h1>
+        <div className="segmentedLinks" aria-label="週の切り替え">
+          <Link aria-current={weekKey === "last" ? "page" : undefined} href="/menu?week=last">
+            先週
+          </Link>
+          <Link aria-current={weekKey === "current" ? "page" : undefined} href="/menu">
+            今週
+          </Link>
+          <Link aria-current={weekKey === "next" ? "page" : undefined} href="/menu?week=next">
+            来週
+          </Link>
+        </div>
       </header>
 
       <div className="mealCards">
-        {weekPlan.map((day) => (
+        {weekPlan.days.map((day) => (
           <article className="mealCard" key={day.day}>
             <div className="mealTop">
               <div>
                 <span className="dayBadge large">{day.day}</span>
                 <h2>{day.recipe.name}</h2>
               </div>
-              <span className={`modePill ${day.mode}`}>
-                {day.mode === "freezer-kit" ? "冷凍キット" : "通常調理"}
+              <span className={`modePill ${day.recipe.type}`}>
+                {day.recipe.type === "freezer-kit" ? "冷凍キット" : "通常料理"}
               </span>
             </div>
 
@@ -38,9 +57,13 @@ export default function MenuPage() {
               </div>
               <div>
                 <span>設定</span>
-                <strong>{day.recipe.hotcookMode}</strong>
+                <strong>{day.recipe.hotcookSetting}</strong>
               </div>
             </div>
+
+            <Link className="inlineButton" href={`/recipes/${day.recipe.id}`}>
+              詳細を見る
+            </Link>
 
             <section className="miniSection">
               <h3>材料</h3>
@@ -68,7 +91,8 @@ export default function MenuPage() {
       <nav className="bottomNav">
         <Link href="/">トップ</Link>
         <Link aria-current="page" href="/menu">献立</Link>
-        <Link href="/shopping-list">買い物</Link>
+        <Link href="/recipes">料理</Link>
+        <Link href={`/shopping-list?week=${weekKey}`}>買い物</Link>
       </nav>
     </main>
   );

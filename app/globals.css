@@ -105,6 +105,10 @@ h3 {
   margin-top: 22px;
 }
 
+.actions.tertiary {
+  margin-top: 10px;
+}
+
 .primaryButton,
 .secondaryButton {
   min-height: 48px;
@@ -132,6 +136,10 @@ h3 {
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   margin: 12px 0 26px;
+}
+
+.quickStats.compactStats {
+  margin-top: -14px;
 }
 
 .quickStats div {
@@ -241,6 +249,44 @@ h3 {
   background: rgba(77, 127, 159, 0.16);
 }
 
+.segmentedLinks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.segmentedLinks a,
+.inlineButton {
+  min-height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.segmentedLinks a[aria-current="page"],
+.inlineButton {
+  color: #fff;
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+.inlineButton {
+  width: 100%;
+}
+
+.inlineButton.compact {
+  width: auto;
+  min-width: 96px;
+}
+
 .pageHeader {
   padding: 14px 0 18px;
 }
@@ -300,6 +346,10 @@ h3 {
 
 .miniSection {
   margin-top: 16px;
+}
+
+.recipeListSection {
+  margin-top: 22px;
 }
 
 .chipList {
@@ -379,13 +429,266 @@ h3 {
   line-height: 1.45;
 }
 
+.shoppingList.categorized {
+  gap: 14px;
+}
+
+.categoryGroup {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 8px 28px rgba(71, 52, 31, 0.08);
+  overflow: hidden;
+}
+
+.categoryGroup h2 {
+  padding: 14px;
+  border-bottom: 1px solid var(--line);
+  background: #f8f1e7;
+  font-size: 1rem;
+}
+
+.categoryItems {
+  display: grid;
+}
+
+.categoryItems .shoppingItem {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.categoryItems .shoppingItem + .shoppingItem {
+  border-top: 1px solid var(--line);
+}
+
+.ingredientList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ingredientList li {
+  display: grid;
+  grid-template-columns: 82px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: #f8f1e7;
+}
+
+.ingredientList span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.ingredientList strong {
+  font-size: 0.9rem;
+}
+
+.ingredientList small,
+.settingText {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.settingText {
+  margin: 0 0 10px;
+  font-weight: 800;
+}
+
+.historyDays {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.historyDays a {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 9px;
+  border-radius: 8px;
+  background: #f8f1e7;
+}
+
+.historyDays strong {
+  font-size: 0.92rem;
+}
+
+.managerShell {
+  display: grid;
+  gap: 14px;
+}
+
+.quickStats.managerStats {
+  margin: 0;
+}
+
+.managerPanel,
+.recipeForm,
+.managerRecipeRow {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 8px 28px rgba(71, 52, 31, 0.08);
+}
+
+.managerPanel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.managerToolbar,
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.managerToolbar label,
+.recipeForm label {
+  display: grid;
+  gap: 6px;
+}
+
+.managerToolbar span,
+.recipeForm span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.managerToolbar input,
+.managerToolbar select,
+.recipeForm input,
+.recipeForm select,
+.recipeForm textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.managerToolbar input,
+.managerToolbar select,
+.recipeForm input,
+.recipeForm select {
+  min-height: 42px;
+  padding: 8px 10px;
+}
+
+.recipeForm textarea {
+  min-height: 112px;
+  padding: 10px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.managerActions,
+.rowActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.managerActions button,
+.rowActions button,
+.recipeForm button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent-dark);
+  color: #fff;
+  font-weight: 800;
+}
+
+.managerActions .ghostButton {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+}
+
+.rowActions .dangerButton {
+  background: #9f3d35;
+}
+
+.recipeForm {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.formHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.formHeader h2 {
+  max-width: 240px;
+}
+
+.formHeader button {
+  min-width: 84px;
+}
+
+.recipeForm small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.formStatus {
+  margin: 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f8f1e7;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.managerList {
+  display: grid;
+  gap: 10px;
+}
+
+.managerRecipeRow {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.managerRecipeRow h2 {
+  margin-top: 8px;
+  font-size: 1.08rem;
+}
+
+.managerRecipeRow small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .bottomNav {
   position: fixed;
   right: 0;
   bottom: 0;
   left: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   width: min(100%, 480px);
   margin: 0 auto;
@@ -395,12 +698,20 @@ h3 {
   backdrop-filter: blur(14px);
 }
 
+@media (max-width: 390px) {
+  .managerToolbar,
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .bottomNav a {
   min-height: 44px;
   display: grid;
   place-items: center;
   border-radius: 8px;
   color: var(--muted);
+  font-size: 0.82rem;
   font-weight: 800;
 }
 

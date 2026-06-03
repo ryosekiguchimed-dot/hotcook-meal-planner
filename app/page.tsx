@@ -1,10 +1,15 @@
 import Link from "next/link";
-import { weekPlan, getShoppingList } from "@/lib/mealPlan";
+import { getMealPlanWeek, getShoppingListForWeek, mealPlanWeeks } from "@/lib/mealPlans";
+import { recipes } from "@/lib/recipes";
 
 export default function Home() {
-  const freezerKitDays = weekPlan.filter((day) => day.mode === "freezer-kit");
-  const cookingDays = weekPlan.filter((day) => day.mode === "regular");
-  const shoppingCount = getShoppingList().length;
+  const weekPlan = getMealPlanWeek("current");
+  const freezerKitDays = weekPlan.days.filter((day) => day.recipe.type === "freezer-kit");
+  const cookingDays = weekPlan.days.filter((day) => day.recipe.type === "regular");
+  const shoppingCount = getShoppingListForWeek(weekPlan).reduce(
+    (total, group) => total + group.items.length,
+    0,
+  );
 
   return (
     <main className="screen">
@@ -22,11 +27,19 @@ export default function Home() {
             買い物リスト
           </Link>
         </div>
+        <div className="actions tertiary">
+          <Link className="secondaryButton" href="/recipes">
+            料理リスト
+          </Link>
+          <Link className="secondaryButton" href="/history">
+            献立履歴
+          </Link>
+        </div>
       </section>
 
       <section className="quickStats" aria-label="今週の概要">
         <div>
-          <strong>{weekPlan.length}</strong>
+          <strong>{weekPlan.days.length}</strong>
           <span>日分の夕食</span>
         </div>
         <div>
@@ -38,8 +51,31 @@ export default function Home() {
           <span>通常調理</span>
         </div>
         <div>
+          <strong>{recipes.length}</strong>
+          <span>登録料理</span>
+        </div>
+        <div>
+          <strong>{mealPlanWeeks.length}</strong>
+          <span>履歴週</span>
+        </div>
+      </section>
+
+      <section className="quickStats compactStats" aria-label="買い物概要">
+        <div>
           <strong>{shoppingCount}</strong>
           <span>買い物項目</span>
+        </div>
+        <div>
+          <strong>4</strong>
+          <span>重複防止週</span>
+        </div>
+        <div>
+          <strong>50</strong>
+          <span>想定レシピ数</span>
+        </div>
+        <div>
+          <strong>3</strong>
+          <span>表示できる週</span>
         </div>
       </section>
 
@@ -49,20 +85,27 @@ export default function Home() {
           <h2>週の流れ</h2>
         </div>
         <div className="timeline">
-          {weekPlan.map((day) => (
-            <Link className="dayRow" href="/menu" key={day.day}>
+          {weekPlan.days.map((day) => (
+            <Link className="dayRow" href={`/recipes/${day.recipe.id}`} key={day.day}>
               <div>
                 <span className="dayBadge">{day.day}</span>
-                <span className={`modePill ${day.mode}`}>
-                  {day.mode === "freezer-kit" ? "冷凍ミールキット" : "通常調理"}
+                <span className={`modePill ${day.recipe.type}`}>
+                  {day.recipe.type === "freezer-kit" ? "冷凍ミールキット" : "通常料理"}
                 </span>
               </div>
               <strong>{day.recipe.name}</strong>
-              <small>{day.recipe.timeMinutes}分 / {day.recipe.hotcookMode}</small>
+              <small>{day.recipe.timeMinutes}分 / {day.recipe.hotcookSetting}</small>
             </Link>
           ))}
         </div>
       </section>
+
+      <nav className="bottomNav">
+        <Link aria-current="page" href="/">トップ</Link>
+        <Link href="/menu">献立</Link>
+        <Link href="/recipes">料理</Link>
+        <Link href="/shopping-list">買い物</Link>
+      </nav>
     </main>
   );
 }
