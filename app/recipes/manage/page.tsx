@@ -21,8 +21,9 @@ export default function RecipeManagePage() {
       <nav className="bottomNav">
         <Link href="/">トップ</Link>
         <Link href="/menu">献立</Link>
-        <Link aria-current="page" href="/recipes">料理</Link>
         <Link href="/shopping-list">買い物</Link>
+        <Link href="/recipes">料理一覧</Link>
+        <Link aria-current="page" href="/recipes/manage">料理管理</Link>
       </nav>
     </main>
   );
