@@ -1,0 +1,10 @@
+{
+  "name": "ホットクック献立プランナー",
+  "short_name": "ホットクック献立",
+  "description": "4人家族向けの1週間ホットクック夕飯献立アプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff8ef",
+  "theme_color": "#f7b267",
+  "lang": "ja"
+}
