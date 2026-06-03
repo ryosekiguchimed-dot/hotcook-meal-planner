@@ -72,8 +72,9 @@ export default async function ShoppingListPage({ searchParams }: ShoppingListPag
       <nav className="bottomNav">
         <Link href="/">トップ</Link>
         <Link href={`/menu?week=${weekKey}`}>献立</Link>
-        <Link href="/recipes">料理</Link>
         <Link aria-current="page" href="/shopping-list">買い物</Link>
+        <Link href="/recipes">料理一覧</Link>
+        <Link href="/recipes/manage">料理管理</Link>
       </nav>
     </main>
   );
