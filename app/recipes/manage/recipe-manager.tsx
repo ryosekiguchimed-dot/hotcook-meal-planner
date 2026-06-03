@@ -2,10 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  type DishCategory,
   type Ingredient,
   type IngredientCategory,
+  type MealRole,
   type Recipe,
   type RecipeType,
+  getDishCategoryLabel,
+  getMealRoleLabel,
   getRecipeTypeLabel,
 } from "@/lib/recipes";
 
@@ -17,8 +21,11 @@ type RecipeFormState = {
   id: string;
   name: string;
   type: RecipeType;
+  mealRole: MealRole;
+  dishCategory: DishCategory;
   timeMinutes: string;
   hotcookSetting: string;
+  hotcookMenuNumber: string;
   ingredientsText: string;
   stepsText: string;
   hotcookOperationText: string;
@@ -40,8 +47,11 @@ function createBlankForm(): RecipeFormState {
     id: "",
     name: "",
     type: "freezer-kit",
+    mealRole: "main",
+    dishCategory: "meat",
     timeMinutes: "30",
     hotcookSetting: "手動 煮物を作る まぜる",
+    hotcookMenuNumber: "",
     ingredientsText: "鶏もも肉 / 600g / 肉・魚\n玉ねぎ / 1個 / 野菜",
     stepsText: "材料を切る。\n内鍋に入れる。\nホットクックで加熱する。",
     hotcookOperationText: "まぜ技ユニットを取り付ける。\n内鍋を本体にセットする。\n指定のメニューで加熱する。",
@@ -53,8 +63,11 @@ function recipeToForm(recipe: Recipe): RecipeFormState {
     id: recipe.id,
     name: recipe.name,
     type: recipe.type,
+    mealRole: recipe.mealRole,
+    dishCategory: recipe.dishCategory,
     timeMinutes: String(recipe.timeMinutes),
     hotcookSetting: recipe.hotcookSetting,
+    hotcookMenuNumber: recipe.hotcookMenuNumber ?? "",
     ingredientsText: recipe.ingredients
       .map((ingredient) => `${ingredient.name} / ${ingredient.amount} / ${ingredient.category}`)
       .join("\n"),
@@ -111,6 +124,8 @@ function formToRecipe(form: RecipeFormState, existingId?: string): Recipe {
     id,
     name,
     type: form.type,
+    mealRole: form.mealRole,
+    dishCategory: form.dishCategory,
     description:
       form.type === "freezer-kit"
         ? "ユーザー登録の冷凍ミールキット料理。"
@@ -118,18 +133,34 @@ function formToRecipe(form: RecipeFormState, existingId?: string): Recipe {
     servings: 4,
     timeMinutes: Number(form.timeMinutes) || 30,
     hotcookSetting: form.hotcookSetting.trim(),
+    hotcookMenuNumber: form.hotcookMenuNumber.trim() || undefined,
     hotcookOperation: parseLines(form.hotcookOperationText),
     ingredients: parseIngredients(form.ingredientsText),
     steps: parseLines(form.stepsText),
   };
 }
 
+function normalizeRecipe(recipe: Recipe): Recipe {
+  return {
+    ...recipe,
+    mealRole: recipe.mealRole ?? "main",
+    dishCategory: recipe.dishCategory ?? "meat",
+    hotcookMenuNumber: recipe.hotcookMenuNumber || undefined,
+  };
+}
+
 export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
+  const [password, setPassword] = useState("");
+  const [authenticated, setAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authMessage, setAuthMessage] = useState("管理画面を開くにはパスワードを入力してください。");
   const [recipes, setRecipes] = useState<Recipe[]>(initialRecipes);
   const [form, setForm] = useState<RecipeFormState>(createBlankForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | RecipeType>("all");
+  const [roleFilter, setRoleFilter] = useState<"all" | MealRole>("all");
+  const [categoryFilter, setCategoryFilter] = useState<"all" | DishCategory>("all");
   const [status, setStatus] = useState("初期データを読み込みました。");
 
   useEffect(() => {
@@ -139,7 +170,7 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
     try {
       const parsed = JSON.parse(saved) as Recipe[];
       if (Array.isArray(parsed)) {
-        setRecipes(parsed);
+        setRecipes(parsed.map(normalizeRecipe));
         setStatus("保存済みの料理マスターを読み込みました。");
       }
     } catch {
@@ -158,18 +189,47 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
 
     return recipes.filter((recipe) => {
       const matchesType = typeFilter === "all" || recipe.type === typeFilter;
+      const matchesRole = roleFilter === "all" || recipe.mealRole === roleFilter;
+      const matchesCategory = categoryFilter === "all" || recipe.dishCategory === categoryFilter;
       const matchesQuery =
         !normalizedQuery ||
         recipe.name.toLowerCase().includes(normalizedQuery) ||
-        recipe.hotcookSetting.toLowerCase().includes(normalizedQuery);
+        recipe.hotcookSetting.toLowerCase().includes(normalizedQuery) ||
+        (recipe.hotcookMenuNumber ?? "").toLowerCase().includes(normalizedQuery);
 
-      return matchesType && matchesQuery;
+      return matchesType && matchesRole && matchesCategory && matchesQuery;
     });
-  }, [query, recipes, typeFilter]);
+  }, [categoryFilter, query, recipes, roleFilter, typeFilter]);
 
   const freezerCount = recipes.filter((recipe) => recipe.type === "freezer-kit").length;
   const regularCount = recipes.filter((recipe) => recipe.type === "regular").length;
   const isEditing = editingId !== null;
+
+  async function handleAuthSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAuthLoading(true);
+
+    try {
+      const response = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const result = (await response.json()) as { ok?: boolean };
+
+      if (result.ok) {
+        setAuthenticated(true);
+        setAuthMessage("認証しました。");
+        return;
+      }
+
+      setAuthMessage("パスワードが違います。");
+    } catch {
+      setAuthMessage("認証に失敗しました。時間をおいて再度お試しください。");
+    } finally {
+      setAuthLoading(false);
+    }
+  }
 
   function updateForm<K extends keyof RecipeFormState>(key: K, value: RecipeFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -234,6 +294,30 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
     setStatus("初期データに戻しました。");
   }
 
+  if (!authenticated) {
+    return (
+      <form className="authPanel" onSubmit={handleAuthSubmit}>
+        <div>
+          <p className="eyebrow">管理者認証</p>
+          <h2>パスワード入力</h2>
+          <p>{authMessage}</p>
+        </div>
+        <label>
+          <span>パスワード</span>
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+          />
+        </label>
+        <button type="submit" disabled={authLoading}>
+          {authLoading ? "確認中" : "管理画面を開く"}
+        </button>
+      </form>
+    );
+  }
+
   return (
     <div className="managerShell">
       <section className="quickStats managerStats" aria-label="料理マスター件数">
@@ -275,6 +359,29 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
               <option value="all">すべて</option>
               <option value="freezer-kit">冷凍ミールキット</option>
               <option value="regular">通常料理</option>
+            </select>
+          </label>
+          <label>
+            <span>主菜/副菜</span>
+            <select
+              value={roleFilter}
+              onChange={(event) => setRoleFilter(event.target.value as "all" | MealRole)}
+            >
+              <option value="all">すべて</option>
+              <option value="main">主菜</option>
+              <option value="side">副菜</option>
+            </select>
+          </label>
+          <label>
+            <span>料理カテゴリ</span>
+            <select
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value as "all" | DishCategory)}
+            >
+              <option value="all">すべて</option>
+              <option value="meat">肉料理</option>
+              <option value="fish">魚料理</option>
+              <option value="vegetable">野菜料理</option>
             </select>
           </label>
         </div>
@@ -319,6 +426,27 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
             </select>
           </label>
           <label>
+            <span>主菜/副菜</span>
+            <select
+              value={form.mealRole}
+              onChange={(event) => updateForm("mealRole", event.target.value as MealRole)}
+            >
+              <option value="main">主菜</option>
+              <option value="side">副菜</option>
+            </select>
+          </label>
+          <label>
+            <span>料理カテゴリ</span>
+            <select
+              value={form.dishCategory}
+              onChange={(event) => updateForm("dishCategory", event.target.value as DishCategory)}
+            >
+              <option value="meat">肉料理</option>
+              <option value="fish">魚料理</option>
+              <option value="vegetable">野菜料理</option>
+            </select>
+          </label>
+          <label>
             <span>調理時間</span>
             <input
               inputMode="numeric"
@@ -336,6 +464,16 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
             onChange={(event) => updateForm("hotcookSetting", event.target.value)}
             placeholder="手動 煮物を作る まぜる"
           />
+        </label>
+
+        <label>
+          <span>ホットクックメニュー番号</span>
+          <input
+            value={form.hotcookMenuNumber}
+            onChange={(event) => updateForm("hotcookMenuNumber", event.target.value)}
+            placeholder="任意入力"
+          />
+          <small>番号がない料理は空欄のまま登録できます。</small>
         </label>
 
         <label>
@@ -375,9 +513,16 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
         {filteredRecipes.map((recipe) => (
           <article className="managerRecipeRow" key={recipe.id}>
             <div>
-              <span className={`modePill ${recipe.type}`}>{getRecipeTypeLabel(recipe.type)}</span>
+              <div className="pillRow">
+                <span className={`modePill ${recipe.type}`}>{getRecipeTypeLabel(recipe.type)}</span>
+                <span className="modePill neutral">{getMealRoleLabel(recipe.mealRole)}</span>
+                <span className="modePill neutral">{getDishCategoryLabel(recipe.dishCategory)}</span>
+              </div>
               <h2>{recipe.name}</h2>
-              <small>{recipe.timeMinutes}分 / {recipe.hotcookSetting}</small>
+              <small>
+                {recipe.timeMinutes}分 / {recipe.hotcookSetting}
+                {recipe.hotcookMenuNumber ? ` / メニュー番号 ${recipe.hotcookMenuNumber}` : ""}
+              </small>
             </div>
             <div className="rowActions">
               <button type="button" onClick={() => handleEdit(recipe)}>
