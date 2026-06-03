@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { getRecipeTypeLabel, recipes } from "@/lib/recipes";
+import {
+  getDishCategoryLabel,
+  getMealRoleLabel,
+  getRecipeTypeLabel,
+  recipes,
+} from "@/lib/recipes";
 
 export default function RecipesPage() {
   const freezerRecipes = recipes.filter((recipe) => recipe.type === "freezer-kit");
@@ -31,11 +36,16 @@ export default function RecipesPage() {
         <div className="timeline">
           {freezerRecipes.map((recipe) => (
             <Link className="dayRow" href={`/recipes/${recipe.id}`} key={recipe.id}>
-              <div>
+              <div className="pillRow">
                 <span className={`modePill ${recipe.type}`}>{getRecipeTypeLabel(recipe.type)}</span>
+                <span className="modePill neutral">{getMealRoleLabel(recipe.mealRole)}</span>
+                <span className="modePill neutral">{getDishCategoryLabel(recipe.dishCategory)}</span>
               </div>
               <strong>{recipe.name}</strong>
-              <small>{recipe.timeMinutes}分 / {recipe.hotcookSetting}</small>
+              <small>
+                {recipe.timeMinutes}分 / {recipe.hotcookSetting}
+                {recipe.hotcookMenuNumber ? ` / メニュー番号 ${recipe.hotcookMenuNumber}` : ""}
+              </small>
             </Link>
           ))}
         </div>
@@ -49,11 +59,16 @@ export default function RecipesPage() {
         <div className="timeline">
           {regularRecipes.map((recipe) => (
             <Link className="dayRow" href={`/recipes/${recipe.id}`} key={recipe.id}>
-              <div>
+              <div className="pillRow">
                 <span className={`modePill ${recipe.type}`}>{getRecipeTypeLabel(recipe.type)}</span>
+                <span className="modePill neutral">{getMealRoleLabel(recipe.mealRole)}</span>
+                <span className="modePill neutral">{getDishCategoryLabel(recipe.dishCategory)}</span>
               </div>
               <strong>{recipe.name}</strong>
-              <small>{recipe.timeMinutes}分 / {recipe.hotcookSetting}</small>
+              <small>
+                {recipe.timeMinutes}分 / {recipe.hotcookSetting}
+                {recipe.hotcookMenuNumber ? ` / メニュー番号 ${recipe.hotcookMenuNumber}` : ""}
+              </small>
             </Link>
           ))}
         </div>
@@ -62,8 +77,9 @@ export default function RecipesPage() {
       <nav className="bottomNav">
         <Link href="/">トップ</Link>
         <Link href="/menu">献立</Link>
-        <Link aria-current="page" href="/recipes">料理</Link>
         <Link href="/shopping-list">買い物</Link>
+        <Link aria-current="page" href="/recipes">料理一覧</Link>
+        <Link href="/recipes/manage">料理管理</Link>
       </nav>
     </main>
   );
