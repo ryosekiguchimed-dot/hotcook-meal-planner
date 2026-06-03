@@ -1,8 +1,9 @@
 import {
   type IngredientCategory,
   type Recipe,
+  type RecipeFilters,
+  filterRecipes,
   getRecipeById,
-  recipes,
 } from "./recipes";
 
 export type WeekKey = "last" | "current" | "next";
@@ -113,7 +114,15 @@ export function getRecentRecipeIds(targetWeekId: string, windowWeeks = 4) {
 
 export function getAvailableRecipesForWeek(targetWeekId: string) {
   const recentRecipeIds = getRecentRecipeIds(targetWeekId);
-  return recipes.filter((recipe) => !recentRecipeIds.has(recipe.id));
+  return filterRecipes({ excludeIds: recentRecipeIds });
+}
+
+export function getAvailableRecipesForWeekByFilter(
+  targetWeekId: string,
+  filters: Omit<RecipeFilters, "excludeIds"> = {},
+) {
+  const recentRecipeIds = getRecentRecipeIds(targetWeekId);
+  return filterRecipes({ ...filters, excludeIds: recentRecipeIds });
 }
 
 export function isRecipeAllowedForWeek(recipeId: string, targetWeekId: string) {

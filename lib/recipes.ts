@@ -1,4 +1,6 @@
 export type RecipeType = "freezer-kit" | "regular";
+export type MealRole = "main" | "side";
+export type DishCategory = "meat" | "fish" | "vegetable";
 
 export type IngredientCategory =
   | "肉・魚"
@@ -18,13 +20,23 @@ export type Recipe = {
   id: string;
   name: string;
   type: RecipeType;
+  mealRole: MealRole;
+  dishCategory: DishCategory;
   description: string;
   servings: number;
   timeMinutes: number;
   hotcookSetting: string;
+  hotcookMenuNumber?: string;
   hotcookOperation: string[];
   ingredients: Ingredient[];
   steps: string[];
+};
+
+export type RecipeFilters = {
+  type?: RecipeType;
+  mealRole?: MealRole;
+  dishCategory?: DishCategory;
+  excludeIds?: Iterable<string>;
 };
 
 const sharedSteps = {
@@ -45,6 +57,44 @@ const sharedOperation = {
   noMix: ["まぜ技ユニットは使わない。", "内鍋を本体にセットする。", "指定の手動メニューで加熱する。"],
   menu: ["まぜ技ユニットを取り付ける。", "内鍋を本体にセットする。", "本体メニューから該当メニューを選ぶ。"],
 };
+
+const sideRecipeIds = new Set(["corn-soup", "mushroom-risotto-base"]);
+const fishRecipeIds = new Set([
+  "salmon-miso-butter",
+  "saba-tomato",
+  "salmon-cream",
+  "simmered-yellowtail",
+  "clam-chowder",
+  "white-fish-aqua",
+  "seafood-tomato-soup",
+]);
+const vegetableRecipeIds = new Set([
+  "vegetable-pot-au-feu",
+  "minestrone",
+  "corn-soup",
+  "pumpkin-stew",
+  "mushroom-risotto-base",
+]);
+
+function getMealRole(id: string): MealRole {
+  return sideRecipeIds.has(id) ? "side" : "main";
+}
+
+function getDishCategory(id: string): DishCategory {
+  if (fishRecipeIds.has(id)) return "fish";
+  if (vegetableRecipeIds.has(id)) return "vegetable";
+  return "meat";
+}
+
+function getHotcookMenuNumber(setting: string) {
+  const menuName = setting.replace(/^メニュー\s*/, "");
+  const menuNumbers: Record<string, string> = {
+    肉じゃが: "001",
+    筑前煮: "002",
+  };
+
+  return menuNumbers[menuName];
+}
 
 const freezerRecipes: Recipe[] = [
   ["chicken-tomato", "鶏ももトマト煮", "鶏肉と野菜を冷凍袋に入れておき、帰宅後は内鍋へ移すだけ。", 35, "手動 煮物を作る まぜる", [["鶏もも肉", "600g", "肉・魚"], ["玉ねぎ", "1個", "野菜"], ["しめじ", "1袋", "きのこ・豆"], ["カットトマト缶", "1缶", "乾物・その他"], ["コンソメ", "小さじ2", "調味料"]]],
@@ -76,10 +126,13 @@ const freezerRecipes: Recipe[] = [
   id: id as string,
   name: name as string,
   type: "freezer-kit",
+  mealRole: getMealRole(id as string),
+  dishCategory: getDishCategory(id as string),
   description: description as string,
   servings: 4,
   timeMinutes: timeMinutes as number,
   hotcookSetting: hotcookSetting as string,
+  hotcookMenuNumber: getHotcookMenuNumber(hotcookSetting as string),
   hotcookOperation: (hotcookSetting as string).includes("まぜない") || (hotcookSetting as string).includes("蒸す")
     ? sharedOperation.noMix
     : (hotcookSetting as string).includes("メニュー")
@@ -123,10 +176,13 @@ const regularRecipes: Recipe[] = [
   id: id as string,
   name: name as string,
   type: "regular",
+  mealRole: getMealRole(id as string),
+  dishCategory: getDishCategory(id as string),
   description: description as string,
   servings: 4,
   timeMinutes: timeMinutes as number,
   hotcookSetting: hotcookSetting as string,
+  hotcookMenuNumber: getHotcookMenuNumber(hotcookSetting as string),
   hotcookOperation: (hotcookSetting as string).includes("まぜない")
     ? sharedOperation.noMix
     : (hotcookSetting as string).includes("メニュー")
@@ -150,6 +206,37 @@ export function getRecipesByType(type: RecipeType) {
   return recipes.filter((recipe) => recipe.type === type);
 }
 
+export function filterRecipes({
+  type,
+  mealRole,
+  dishCategory,
+  excludeIds,
+}: RecipeFilters = {}) {
+  const excluded = new Set(excludeIds ?? []);
+
+  return recipes.filter((recipe) => {
+    if (excluded.has(recipe.id)) return false;
+    if (type && recipe.type !== type) return false;
+    if (mealRole && recipe.mealRole !== mealRole) return false;
+    if (dishCategory && recipe.dishCategory !== dishCategory) return false;
+    return true;
+  });
+}
+
 export function getRecipeTypeLabel(type: RecipeType) {
   return type === "freezer-kit" ? "冷凍ミールキット" : "通常料理";
+}
+
+export function getMealRoleLabel(role: MealRole) {
+  return role === "main" ? "主菜" : "副菜";
+}
+
+export function getDishCategoryLabel(category: DishCategory) {
+  const labels: Record<DishCategory, string> = {
+    meat: "肉料理",
+    fish: "魚料理",
+    vegetable: "野菜料理",
+  };
+
+  return labels[category];
 }

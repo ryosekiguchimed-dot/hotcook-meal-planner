@@ -59,6 +59,12 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
                 <span>設定</span>
                 <strong>{day.recipe.hotcookSetting}</strong>
               </div>
+              {day.recipe.hotcookMenuNumber ? (
+                <div>
+                  <span>番号</span>
+                  <strong>{day.recipe.hotcookMenuNumber}</strong>
+                </div>
+              ) : null}
             </div>
 
             <Link className="inlineButton" href={`/recipes/${day.recipe.id}`}>
@@ -91,8 +97,9 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
       <nav className="bottomNav">
         <Link href="/">トップ</Link>
         <Link aria-current="page" href="/menu">献立</Link>
-        <Link href="/recipes">料理</Link>
         <Link href={`/shopping-list?week=${weekKey}`}>買い物</Link>
+        <Link href="/recipes">料理一覧</Link>
+        <Link href="/recipes/manage">料理管理</Link>
       </nav>
     </main>
   );

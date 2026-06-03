@@ -35,6 +35,11 @@ export default function Home() {
             献立履歴
           </Link>
         </div>
+        <div className="actions tertiary singleAction">
+          <Link className="secondaryButton" href="/recipes/manage">
+            料理を管理する
+          </Link>
+        </div>
       </section>
 
       <section className="quickStats" aria-label="今週の概要">
@@ -94,7 +99,10 @@ export default function Home() {
                 </span>
               </div>
               <strong>{day.recipe.name}</strong>
-              <small>{day.recipe.timeMinutes}分 / {day.recipe.hotcookSetting}</small>
+              <small>
+                {day.recipe.timeMinutes}分 / {day.recipe.hotcookSetting}
+                {day.recipe.hotcookMenuNumber ? ` / メニュー番号 ${day.recipe.hotcookMenuNumber}` : ""}
+              </small>
             </Link>
           ))}
         </div>
@@ -103,8 +111,9 @@ export default function Home() {
       <nav className="bottomNav">
         <Link aria-current="page" href="/">トップ</Link>
         <Link href="/menu">献立</Link>
-        <Link href="/recipes">料理</Link>
         <Link href="/shopping-list">買い物</Link>
+        <Link href="/recipes">料理一覧</Link>
+        <Link href="/recipes/manage">料理管理</Link>
       </nav>
     </main>
   );

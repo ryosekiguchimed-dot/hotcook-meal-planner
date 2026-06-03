@@ -1,13 +1,31 @@
-export { recipes, getRecipeById, getRecipesByType, getRecipeTypeLabel } from "./recipes";
+export {
+  recipes,
+  filterRecipes,
+  getDishCategoryLabel,
+  getMealRoleLabel,
+  getRecipeById,
+  getRecipesByType,
+  getRecipeTypeLabel,
+} from "./recipes";
 export {
   getAvailableRecipesForWeek,
+  getAvailableRecipesForWeekByFilter,
   getMealPlanWeek,
   getRecentRecipeIds,
   getShoppingListForWeek,
   isRecipeAllowedForWeek,
   mealPlanWeeks,
+  normalizeWeekKey,
 } from "./mealPlans";
-export type { Ingredient, IngredientCategory, Recipe, RecipeType } from "./recipes";
+export type {
+  DishCategory,
+  Ingredient,
+  IngredientCategory,
+  MealRole,
+  Recipe,
+  RecipeFilters,
+  RecipeType,
+} from "./recipes";
 export type {
   DayName,
   HydratedMealPlanDay,
