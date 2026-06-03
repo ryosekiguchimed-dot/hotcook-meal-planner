@@ -35,7 +35,9 @@ a {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
@@ -107,6 +109,10 @@ h3 {
 
 .actions.tertiary {
   margin-top: 10px;
+}
+
+.actions.singleAction {
+  grid-template-columns: 1fr;
 }
 
 .primaryButton,
@@ -249,6 +255,22 @@ h3 {
   background: rgba(77, 127, 159, 0.16);
 }
 
+.modePill.neutral {
+  color: var(--muted);
+  background: #f8f1e7;
+}
+
+.pillRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.dayRow .pillRow {
+  justify-content: flex-start;
+}
+
 .segmentedLinks {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -316,7 +338,7 @@ h3 {
 
 .infoGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
   gap: 8px;
   margin: 14px 0;
 }
@@ -528,6 +550,33 @@ h3 {
   gap: 14px;
 }
 
+.authPanel {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 8px 28px rgba(71, 52, 31, 0.08);
+}
+
+.authPanel p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.authPanel label {
+  display: grid;
+  gap: 6px;
+}
+
+.authPanel span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
 .quickStats.managerStats {
   margin: 0;
 }
@@ -569,6 +618,7 @@ h3 {
 
 .managerToolbar input,
 .managerToolbar select,
+.authPanel input,
 .recipeForm input,
 .recipeForm select,
 .recipeForm textarea {
@@ -582,6 +632,7 @@ h3 {
 
 .managerToolbar input,
 .managerToolbar select,
+.authPanel input,
 .recipeForm input,
 .recipeForm select {
   min-height: 42px;
@@ -604,6 +655,7 @@ h3 {
 
 .managerActions button,
 .rowActions button,
+.authPanel button,
 .recipeForm button {
   min-height: 42px;
   border: 0;
@@ -611,6 +663,13 @@ h3 {
   background: var(--accent-dark);
   color: #fff;
   font-weight: 800;
+}
+
+.managerActions button:disabled,
+.rowActions button:disabled,
+.authPanel button:disabled,
+.recipeForm button:disabled {
+  opacity: 0.62;
 }
 
 .managerActions .ghostButton {
@@ -688,8 +747,8 @@ h3 {
   bottom: 0;
   left: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
   width: min(100%, 480px);
   margin: 0 auto;
   padding: 10px 14px max(10px, env(safe-area-inset-bottom));
@@ -711,8 +770,10 @@ h3 {
   place-items: center;
   border-radius: 8px;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.72rem;
   font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
 }
 
 .bottomNav a[aria-current="page"] {
