@@ -1,9 +1,20 @@
 import Link from "next/link";
-import { getShoppingList, weekPlan } from "@/lib/mealPlan";
+import {
+  getMealPlanWeek,
+  getShoppingListForWeek,
+  normalizeWeekKey,
+} from "@/lib/mealPlans";
 
-export default function ShoppingListPage() {
-  const items = getShoppingList();
-  const freezerKitRecipes = weekPlan.filter((day) => day.mode === "freezer-kit");
+type ShoppingListPageProps = {
+  searchParams?: Promise<{ week?: string | string[] }>;
+};
+
+export default async function ShoppingListPage({ searchParams }: ShoppingListPageProps) {
+  const params = await searchParams;
+  const weekKey = normalizeWeekKey(params?.week);
+  const weekPlan = getMealPlanWeek(weekKey);
+  const groups = getShoppingListForWeek(weekPlan);
+  const freezerKitRecipes = weekPlan.days.filter((day) => day.recipe.type === "freezer-kit");
 
   return (
     <main className="screen withBottomNav">
@@ -11,11 +22,22 @@ export default function ShoppingListPage() {
         <Link className="backLink" href="/">
           ← トップ
         </Link>
-        <p className="eyebrow">自動生成</p>
+        <p className="eyebrow">{weekPlan.label}の材料を自動集計</p>
         <h1>今週の買い物リスト</h1>
         <p className="lead compact">
-          固定レシピ DB から材料を集計。冷凍ミールキット分はまとめて下準備できます。
+          選択された1週間分の献立から材料をカテゴリ別に集計します。
         </p>
+        <div className="segmentedLinks" aria-label="週の切り替え">
+          <Link aria-current={weekKey === "last" ? "page" : undefined} href="/shopping-list?week=last">
+            先週
+          </Link>
+          <Link aria-current={weekKey === "current" ? "page" : undefined} href="/shopping-list">
+            今週
+          </Link>
+          <Link aria-current={weekKey === "next" ? "page" : undefined} href="/shopping-list?week=next">
+            来週
+          </Link>
+        </div>
       </header>
 
       <section className="prepBox">
@@ -28,21 +50,29 @@ export default function ShoppingListPage() {
         </div>
       </section>
 
-      <section className="shoppingList" aria-label="買い物リスト">
-        {items.map((item) => (
-          <label className="shoppingItem" key={item.name}>
-            <input type="checkbox" />
-            <span>
-              <strong>{item.name}</strong>
-              <small>{item.amounts.join(" / ")}</small>
-            </span>
-          </label>
+      <section className="shoppingList categorized" aria-label="買い物リスト">
+        {groups.map((group) => (
+          <article className="categoryGroup" key={group.category}>
+            <h2>{group.category}</h2>
+            <div className="categoryItems">
+              {group.items.map((item) => (
+                <label className="shoppingItem" key={item.name}>
+                  <input type="checkbox" />
+                  <span>
+                    <strong>{item.name}</strong>
+                    <small>{item.amounts.join(" / ")}</small>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </article>
         ))}
       </section>
 
       <nav className="bottomNav">
         <Link href="/">トップ</Link>
-        <Link href="/menu">献立</Link>
+        <Link href={`/menu?week=${weekKey}`}>献立</Link>
+        <Link href="/recipes">料理</Link>
         <Link aria-current="page" href="/shopping-list">買い物</Link>
       </nav>
     </main>
