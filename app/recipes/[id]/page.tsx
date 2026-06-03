@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getRecipeById, getRecipeTypeLabel, recipes } from "@/lib/recipes";
+import {
+  getDishCategoryLabel,
+  getMealRoleLabel,
+  getRecipeById,
+  getRecipeTypeLabel,
+  recipes,
+} from "@/lib/recipes";
 
 type RecipeDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -43,6 +49,14 @@ export default async function RecipeDetailPage({ params }: RecipeDetailPageProps
             <span>種別</span>
             <strong>{getRecipeTypeLabel(recipe.type)}</strong>
           </div>
+          <div>
+            <span>役割</span>
+            <strong>{getMealRoleLabel(recipe.mealRole)}</strong>
+          </div>
+          <div>
+            <span>分類</span>
+            <strong>{getDishCategoryLabel(recipe.dishCategory)}</strong>
+          </div>
         </div>
 
         <section className="miniSection">
@@ -70,6 +84,9 @@ export default async function RecipeDetailPage({ params }: RecipeDetailPageProps
         <section className="miniSection">
           <h2>ホットクック操作</h2>
           <p className="settingText">{recipe.hotcookSetting}</p>
+          {recipe.hotcookMenuNumber ? (
+            <p className="settingText">メニュー番号 {recipe.hotcookMenuNumber}</p>
+          ) : null}
           <ol className="steps">
             {recipe.hotcookOperation.map((operation) => (
               <li key={operation}>{operation}</li>
@@ -81,8 +98,9 @@ export default async function RecipeDetailPage({ params }: RecipeDetailPageProps
       <nav className="bottomNav">
         <Link href="/">トップ</Link>
         <Link href="/menu">献立</Link>
-        <Link aria-current="page" href="/recipes">料理</Link>
         <Link href="/shopping-list">買い物</Link>
+        <Link aria-current="page" href="/recipes">料理一覧</Link>
+        <Link href="/recipes/manage">料理管理</Link>
       </nav>
     </main>
   );
