@@ -324,6 +324,120 @@ h3 {
   padding: 16px;
 }
 
+.generatorPanel,
+.candidatePanel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 8px 28px rgba(71, 52, 31, 0.08);
+}
+
+.generatorControls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: end;
+}
+
+.generatorControls label {
+  display: grid;
+  gap: 6px;
+}
+
+.generatorControls span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.generatorControls select,
+.generatorControls button,
+.dayEditControls button,
+.candidateList button {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.generatorControls button,
+.dayEditControls button:first-child {
+  color: #fff;
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+.dayEditControls {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.dayEditControls button {
+  padding: 8px;
+  font-size: 0.8rem;
+}
+
+.dayEditControls button:disabled,
+.generatorControls button:disabled {
+  opacity: 0.45;
+}
+
+.dayEditControls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8f1e7;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.dayEditControls input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--green);
+}
+
+.candidatePanel {
+  margin-top: 14px;
+  margin-bottom: 0;
+  background: #fffaf2;
+}
+
+.candidateList {
+  display: grid;
+  gap: 8px;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.candidateList button {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  padding: 10px;
+  text-align: left;
+}
+
+.candidateList small {
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 .mealTop h2 {
   max-width: 260px;
   font-size: 1.35rem;
