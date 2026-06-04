@@ -14,6 +14,7 @@ import {
 } from "@/lib/recipes";
 import {
   clearStoredRecipes,
+  createUniqueRecipeId,
   loadStoredRecipes,
   saveRecipesToStorage,
 } from "@/lib/recipeStorage";
@@ -88,17 +89,6 @@ function recipeToForm(recipe: Recipe): RecipeFormState {
     stepsText: recipe.steps.join("\n"),
     hotcookOperationText: recipe.hotcookOperation.join("\n"),
   };
-}
-
-function createRecipeId(name: string) {
-  const fallback = `recipe-${Date.now()}`;
-  return (
-    name
-      .trim()
-      .toLowerCase()
-      .replace(/[^\p{Letter}\p{Number}]+/gu, "-")
-      .replace(/^-+|-+$/g, "") || fallback
-  );
 }
 
 function parseIngredients(value: string): Ingredient[] {
@@ -233,7 +223,7 @@ function csvRowsToRecipes(rows: string[]) {
     .filter((ingredient) => ingredient.name);
 }
 
-function createImportedRecipe(record: Record<string, string>): Recipe | null {
+function createImportedRecipe(record: Record<string, string>, usedIds: Set<string>): Recipe | null {
   const name = record.name?.trim();
   if (!name) return null;
 
@@ -243,7 +233,7 @@ function createImportedRecipe(record: Record<string, string>): Recipe | null {
   const ingredientLines = parseLines(record.ingredients ?? "");
 
   return {
-    id: createRecipeId(name),
+    id: createUniqueRecipeId(name, usedIds),
     name,
     type: "regular",
     mealRole: parseCourse(record.course ?? ""),
@@ -261,9 +251,10 @@ function createImportedRecipe(record: Record<string, string>): Recipe | null {
   };
 }
 
-function parseRecipesFromCsv(text: string) {
+function parseRecipesFromCsv(text: string, usedRecipeIds: Iterable<string> = []) {
   const rows = parseCsv(normalizeCsvText(text));
   const [headerRow, ...bodyRows] = rows;
+  const usedIds = new Set(usedRecipeIds);
 
   if (!headerRow) {
     throw new Error("CSVにヘッダー行がありません。");
@@ -281,14 +272,18 @@ function parseRecipesFromCsv(text: string) {
       const record = Object.fromEntries(
         headers.map((header, index) => [header, row[index]?.trim() ?? ""]),
       );
-      return createImportedRecipe(record);
+      const recipe = createImportedRecipe(record, usedIds);
+      if (recipe) {
+        usedIds.add(recipe.id);
+      }
+      return recipe;
     })
     .filter((recipe): recipe is Recipe => recipe !== null);
 }
 
-function formToRecipe(form: RecipeFormState, existingId?: string): Recipe {
+function formToRecipe(form: RecipeFormState, existingId?: string, usedRecipeIds: Iterable<string> = []): Recipe {
   const name = form.name.trim();
-  const id = existingId || form.id || createRecipeId(name);
+  const id = existingId || form.id || createUniqueRecipeId(name, usedRecipeIds);
 
   return {
     id,
@@ -412,7 +407,10 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
       return;
     }
 
-    const recipe = formToRecipe(form, editingId ?? undefined);
+    const usedRecipeIds = recipes
+      .filter((current) => current.id !== editingId)
+      .map((current) => current.id);
+    const recipe = formToRecipe(form, editingId ?? undefined, usedRecipeIds);
 
     if (recipe.ingredients.length === 0) {
       setStatus("材料を1つ以上入力してください。");
@@ -459,7 +457,7 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
 
     try {
       const text = await file.text();
-      const importedRecipes = parseRecipesFromCsv(text);
+      const importedRecipes = parseRecipesFromCsv(text, recipes.map((recipe) => recipe.id));
 
       if (importedRecipes.length === 0) {
         setStatus("取り込める料理がありませんでした。");
