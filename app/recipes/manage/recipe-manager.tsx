@@ -57,6 +57,26 @@ const ingredientCategories: IngredientCategory[] = [
   "乾物・その他",
 ];
 
+const ingredientCategoryAliases: Record<string, IngredientCategory> = {
+  肉: "肉・魚",
+  魚: "肉・魚",
+  "肉・魚": "肉・魚",
+  肉魚: "肉・魚",
+  野菜: "野菜",
+  きのこ: "きのこ・豆",
+  キノコ: "きのこ・豆",
+  豆: "きのこ・豆",
+  "きのこ・豆": "きのこ・豆",
+  きのこ豆: "きのこ・豆",
+  卵: "卵・乳製品",
+  乳製品: "卵・乳製品",
+  "卵・乳製品": "卵・乳製品",
+  調味料: "調味料",
+  乾物: "乾物・その他",
+  その他: "乾物・その他",
+  "乾物・その他": "乾物・その他",
+};
+
 function createBlankForm(): RecipeFormState {
   return {
     id: "",
@@ -91,26 +111,55 @@ function recipeToForm(recipe: Recipe): RecipeFormState {
   };
 }
 
+function normalizeIngredientCategory(value: string | undefined) {
+  const normalizedValue = value?.trim();
+  if (!normalizedValue) return undefined;
+
+  return ingredientCategoryAliases[normalizedValue];
+}
+
+function inferIngredientCategory(name: string): IngredientCategory {
+  const normalizedName = name.trim();
+  const aliasCategory = normalizeIngredientCategory(normalizedName);
+
+  if (aliasCategory) return aliasCategory;
+  if (/(肉|牛|豚|鶏|魚|鮭|さば|鯖|ぶり|あさり|シーフード)/.test(normalizedName)) return "肉・魚";
+  if (/(玉ねぎ|玉葱|にんじん|人参|大根|白菜|キャベツ|ねぎ|長ねぎ|ピーマン|なす|ブロッコリー|トマト|じゃがいも|かぼちゃ|れんこん|野菜)/.test(normalizedName)) return "野菜";
+  if (/(きのこ|しめじ|えのき|まいたけ|しいたけ|豆|豆腐|ミックスビーンズ)/.test(normalizedName)) return "きのこ・豆";
+  if (/(卵|牛乳|バター|チーズ|乳)/.test(normalizedName)) return "卵・乳製品";
+  if (/(しょうゆ|醤油|みそ|味噌|塩|砂糖|酒|みりん|酢|油|ごま油|コンソメ|だし|ルウ|ケチャップ|ソース|カレー粉|調味料)/.test(normalizedName)) return "調味料";
+
+  return "乾物・その他";
+}
+
+function parseIngredientLine(line: string): Ingredient | null {
+  const parts = line
+    .split("/")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const [name = "", second = "", third = ""] = parts;
+  if (!name) return null;
+
+  const secondAsCategory = normalizeIngredientCategory(second);
+  const thirdAsCategory = normalizeIngredientCategory(third);
+  const amount = secondAsCategory ? "適量" : second || "適量";
+  const category = thirdAsCategory ?? secondAsCategory ?? inferIngredientCategory(name);
+
+  return {
+    name,
+    amount,
+    category,
+  };
+}
+
 function parseIngredients(value: string): Ingredient[] {
   return value
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => {
-      const [name = "", amount = "", category = "乾物・その他"] = line
-        .split("/")
-        .map((item) => item.trim());
-      const safeCategory = ingredientCategories.includes(category as IngredientCategory)
-        ? (category as IngredientCategory)
-        : "乾物・その他";
-
-      return {
-        name,
-        amount,
-        category: safeCategory,
-      };
-    })
-    .filter((ingredient) => ingredient.name && ingredient.amount);
+    .map(parseIngredientLine)
+    .filter((ingredient): ingredient is Ingredient => ingredient !== null);
 }
 
 function parseLines(value: string) {
@@ -206,21 +255,8 @@ function csvRowsToRecipes(rows: string[]) {
   return rows
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => {
-      const [name = "", amount = "適量", category = "乾物・その他"] = line
-        .split("/")
-        .map((item) => item.trim());
-      const safeCategory = ingredientCategories.includes(category as IngredientCategory)
-        ? (category as IngredientCategory)
-        : "乾物・その他";
-
-      return {
-        name,
-        amount: amount || "適量",
-        category: safeCategory,
-      };
-    })
-    .filter((ingredient) => ingredient.name);
+    .map(parseIngredientLine)
+    .filter((ingredient): ingredient is Ingredient => ingredient !== null);
 }
 
 function createImportedRecipe(record: Record<string, string>, usedIds: Set<string>): Recipe | null {
