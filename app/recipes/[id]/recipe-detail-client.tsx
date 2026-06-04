@@ -13,9 +13,18 @@ type RecipeDetailClientProps = {
   id: string;
 };
 
+function decodeRecipeId(id: string) {
+  try {
+    return decodeURIComponent(id);
+  } catch {
+    return id;
+  }
+}
+
 export default function RecipeDetailClient({ id }: RecipeDetailClientProps) {
   const recipes = useStoredRecipes(initialRecipes);
-  const recipe = recipes.find((currentRecipe) => currentRecipe.id === id);
+  const recipeId = decodeRecipeId(id);
+  const recipe = recipes.find((currentRecipe) => currentRecipe.id === recipeId);
 
   if (!recipe) {
     return (
