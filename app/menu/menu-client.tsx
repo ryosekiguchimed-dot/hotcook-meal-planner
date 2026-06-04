@@ -1,8 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { getMealPlanWeek, type WeekKey } from "@/lib/mealPlans";
+import { type DayName, mealPlanWeeks, type WeekKey } from "@/lib/mealPlans";
 import { recipes as initialRecipes } from "@/lib/recipes";
+import {
+  generateMealPlanWeek,
+  getCandidateRecipesForDay,
+  getHydratedMealPlanByKey,
+  getMealPlanByKey,
+  getRequiredRecipeType,
+  replaceMealPlanDay,
+  rerollMealPlanDay,
+  saveMealPlansToStorage,
+  setMealPlanDayLocked,
+  upsertMealPlan,
+  useStoredMealPlans,
+} from "@/lib/mealPlanStorage";
 import { useStoredRecipes } from "@/lib/recipeStorage";
 
 type MenuClientProps = {
@@ -11,7 +25,55 @@ type MenuClientProps = {
 
 export default function MenuClient({ weekKey }: MenuClientProps) {
   const recipes = useStoredRecipes(initialRecipes);
-  const weekPlan = getMealPlanWeek(weekKey, recipes);
+  const mealPlans = useStoredMealPlans(mealPlanWeeks);
+  const [targetWeekKey, setTargetWeekKey] = useState<"current" | "next">(
+    weekKey === "next" ? "next" : "current",
+  );
+  const [editingDay, setEditingDay] = useState<DayName | null>(null);
+  const [status, setStatus] = useState("生成・変更した献立はこの端末に保存されます。");
+  const weekPlan = getHydratedMealPlanByKey(mealPlans, weekKey, recipes);
+  const rawWeekPlan = getMealPlanByKey(mealPlans, weekKey);
+  const isEditableWeek = weekKey === "current" || weekKey === "next";
+
+  function saveWeek(nextWeek: typeof rawWeekPlan, message: string) {
+    const nextMealPlans = upsertMealPlan(mealPlans, nextWeek);
+    saveMealPlansToStorage(nextMealPlans);
+    setStatus(message);
+  }
+
+  function handleGenerate() {
+    const targetWeek = getMealPlanByKey(mealPlans, targetWeekKey);
+    const hasExistingPlan = targetWeek.days.length > 0;
+
+    if (hasExistingPlan) {
+      const ok = window.confirm(`${targetWeek.label}の献立を再生成して上書きしますか？固定した曜日は変更しません。`);
+      if (!ok) {
+        setStatus("献立生成をキャンセルしました。");
+        return;
+      }
+    }
+
+    const nextWeek = generateMealPlanWeek(mealPlans, targetWeekKey, recipes);
+    saveWeek(nextWeek, `${nextWeek.label}の献立を生成しました。`);
+    setEditingDay(null);
+  }
+
+  function handleReplaceDay(dayName: DayName, recipeId: string) {
+    const nextWeek = replaceMealPlanDay(rawWeekPlan, dayName, recipeId);
+    saveWeek(nextWeek, `${rawWeekPlan.label} ${dayName}曜日の料理を変更しました。`);
+    setEditingDay(null);
+  }
+
+  function handleRerollDay(dayName: DayName) {
+    const nextWeek = rerollMealPlanDay(mealPlans, weekKey, dayName, recipes);
+    saveWeek(nextWeek, `${rawWeekPlan.label} ${dayName}曜日を再抽選しました。`);
+    setEditingDay(null);
+  }
+
+  function handleLockedChange(dayName: DayName, locked: boolean) {
+    const nextWeek = setMealPlanDayLocked(rawWeekPlan, dayName, locked);
+    saveWeek(nextWeek, `${rawWeekPlan.label} ${dayName}曜日を${locked ? "固定" : "固定解除"}しました。`);
+  }
 
   return (
     <main className="screen">
@@ -33,6 +95,29 @@ export default function MenuClient({ weekKey }: MenuClientProps) {
           </Link>
         </div>
       </header>
+
+      <section className="generatorPanel" aria-label="献立生成">
+        <div>
+          <p className="eyebrow">献立生成</p>
+          <h2>今週・来週を自動作成</h2>
+        </div>
+        <div className="generatorControls">
+          <label>
+            <span>生成対象週</span>
+            <select
+              value={targetWeekKey}
+              onChange={(event) => setTargetWeekKey(event.target.value as "current" | "next")}
+            >
+              <option value="current">今週</option>
+              <option value="next">来週</option>
+            </select>
+          </label>
+          <button type="button" onClick={handleGenerate}>
+            献立生成
+          </button>
+        </div>
+        <p className="formStatus" aria-live="polite">{status}</p>
+      </section>
 
       <div className="mealCards">
         {weekPlan.days.map((day) => (
@@ -73,6 +158,55 @@ export default function MenuClient({ weekKey }: MenuClientProps) {
             <Link className="inlineButton" href={`/recipes/${day.recipe.id}`}>
               詳細を見る
             </Link>
+
+            <div className="dayEditControls">
+              <button
+                type="button"
+                disabled={!isEditableWeek}
+                onClick={() => setEditingDay(editingDay === day.day ? null : day.day)}
+              >
+                変更
+              </button>
+              <button
+                type="button"
+                disabled={!isEditableWeek || day.locked}
+                onClick={() => handleRerollDay(day.day)}
+              >
+                この曜日だけ再抽選
+              </button>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={Boolean(day.locked)}
+                  disabled={!isEditableWeek}
+                  onChange={(event) => handleLockedChange(day.day, event.target.checked)}
+                />
+                <span>固定</span>
+              </label>
+            </div>
+
+            {editingDay === day.day ? (
+              <section className="candidatePanel">
+                <div className="sectionHeader">
+                  <p className="eyebrow">
+                    {getRequiredRecipeType(day.day) === "freezer-kit" ? "冷凍ミールキット候補" : "通常料理候補"}
+                  </p>
+                  <h3>{day.day}曜日に入れる料理</h3>
+                </div>
+                <div className="candidateList">
+                  {getCandidateRecipesForDay(day.day, recipes).map((candidate) => (
+                    <button
+                      type="button"
+                      key={candidate.id}
+                      onClick={() => handleReplaceDay(day.day, candidate.id)}
+                    >
+                      <strong>{candidate.name}</strong>
+                      <small>{candidate.timeMinutes}分 / {candidate.hotcookSetting}</small>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
             <section className="miniSection">
               <h3>材料</h3>

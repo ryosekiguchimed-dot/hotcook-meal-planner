@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { getMealPlanWeek, mealPlanWeeks } from "@/lib/mealPlans";
+import { mealPlanWeeks } from "@/lib/mealPlans";
+import { hydrateMealPlanWeek, useStoredMealPlans } from "@/lib/mealPlanStorage";
 import { recipes as initialRecipes } from "@/lib/recipes";
 import { useStoredRecipes } from "@/lib/recipeStorage";
 
 export default function HistoryClient() {
   const recipes = useStoredRecipes(initialRecipes);
+  const mealPlans = useStoredMealPlans(mealPlanWeeks);
 
   return (
     <main className="screen withBottomNav">
@@ -22,8 +24,8 @@ export default function HistoryClient() {
       </header>
 
       <div className="mealCards">
-        {mealPlanWeeks.map((week) => {
-          const hydratedWeek = getMealPlanWeek(week.key, recipes);
+        {mealPlans.map((week) => {
+          const hydratedWeek = hydrateMealPlanWeek(week, recipes);
 
           return (
             <article className="mealCard" key={week.id}>
