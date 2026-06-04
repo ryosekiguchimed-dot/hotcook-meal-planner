@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { getMealPlanWeek, getShoppingListForWeek, mealPlanWeeks } from "@/lib/mealPlans";
+import { getShoppingListForWeek, mealPlanWeeks } from "@/lib/mealPlans";
+import { getHydratedMealPlanByKey, useStoredMealPlans } from "@/lib/mealPlanStorage";
 import { recipes as initialRecipes } from "@/lib/recipes";
 import { useStoredRecipes } from "@/lib/recipeStorage";
 
 export default function HomeClient() {
   const recipes = useStoredRecipes(initialRecipes);
-  const weekPlan = getMealPlanWeek("current", recipes);
+  const mealPlans = useStoredMealPlans(mealPlanWeeks);
+  const weekPlan = getHydratedMealPlanByKey(mealPlans, "current", recipes);
   const freezerKitDays = weekPlan.days.filter((day) => day.recipe.type === "freezer-kit");
   const cookingDays = weekPlan.days.filter((day) => day.recipe.type === "regular");
   const shoppingCount = getShoppingListForWeek(weekPlan).reduce(
