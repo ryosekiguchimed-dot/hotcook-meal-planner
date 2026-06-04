@@ -653,6 +653,14 @@ h3 {
   gap: 8px;
 }
 
+.managerActions {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.hiddenFileInput {
+  display: none;
+}
+
 .managerActions button,
 .rowActions button,
 .authPanel button,
@@ -759,7 +767,8 @@ h3 {
 
 @media (max-width: 390px) {
   .managerToolbar,
-  .formGrid {
+  .formGrid,
+  .managerActions {
     grid-template-columns: 1fr;
   }
 }

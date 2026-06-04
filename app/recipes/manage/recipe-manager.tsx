@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type DishCategory,
   type Ingredient,
@@ -32,6 +32,16 @@ type RecipeFormState = {
 };
 
 const storageKey = "hotcook-meal-planner.recipes.v1";
+const importTimeMinutes = 30;
+const requiredCsvColumns = [
+  "name",
+  "course",
+  "category",
+  "isHotcook",
+  "hotcookMenuNo",
+  "ingredients",
+  "instructions",
+];
 
 const ingredientCategories: IngredientCategory[] = [
   "肉・魚",
@@ -116,6 +126,162 @@ function parseLines(value: string) {
     .filter(Boolean);
 }
 
+function parseCsv(text: string) {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let value = "";
+  let insideQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    const nextCharacter = text[index + 1];
+
+    if (character === "\"") {
+      if (insideQuotes && nextCharacter === "\"") {
+        value += "\"";
+        index += 1;
+      } else {
+        insideQuotes = !insideQuotes;
+      }
+      continue;
+    }
+
+    if (character === "," && !insideQuotes) {
+      row.push(value);
+      value = "";
+      continue;
+    }
+
+    if ((character === "\n" || character === "\r") && !insideQuotes) {
+      if (character === "\r" && nextCharacter === "\n") {
+        index += 1;
+      }
+      row.push(value);
+      if (row.some((cell) => cell.trim())) {
+        rows.push(row);
+      }
+      row = [];
+      value = "";
+      continue;
+    }
+
+    value += character;
+  }
+
+  row.push(value);
+  if (row.some((cell) => cell.trim())) {
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+function normalizeCsvText(text: string) {
+  return text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+}
+
+function normalizeHeader(value: string) {
+  return value.trim().replace(/^\uFEFF/, "");
+}
+
+function parseCourse(value: string): MealRole {
+  const normalizedValue = value.trim().toLowerCase();
+  return normalizedValue === "副菜" || normalizedValue === "side" ? "side" : "main";
+}
+
+function parseDishCategory(value: string): DishCategory {
+  const normalizedValue = value.trim().toLowerCase();
+
+  if (normalizedValue === "魚料理" || normalizedValue === "魚" || normalizedValue === "fish") {
+    return "fish";
+  }
+
+  if (normalizedValue === "野菜料理" || normalizedValue === "野菜" || normalizedValue === "vegetable") {
+    return "vegetable";
+  }
+
+  return "meat";
+}
+
+function parseBoolean(value: string) {
+  const normalizedValue = value.trim().toLowerCase();
+  return ["1", "true", "yes", "y", "はい", "あり", "○", "有"].includes(normalizedValue);
+}
+
+function csvRowsToRecipes(rows: string[]) {
+  return rows
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [name = "", amount = "適量", category = "乾物・その他"] = line
+        .split("/")
+        .map((item) => item.trim());
+      const safeCategory = ingredientCategories.includes(category as IngredientCategory)
+        ? (category as IngredientCategory)
+        : "乾物・その他";
+
+      return {
+        name,
+        amount: amount || "適量",
+        category: safeCategory,
+      };
+    })
+    .filter((ingredient) => ingredient.name);
+}
+
+function createImportedRecipe(record: Record<string, string>): Recipe | null {
+  const name = record.name?.trim();
+  if (!name) return null;
+
+  const isHotcook = parseBoolean(record.isHotcook ?? "");
+  const hotcookMenuNumber = record.hotcookMenuNo?.trim();
+  const instructionLines = parseLines(record.instructions ?? "");
+  const ingredientLines = parseLines(record.ingredients ?? "");
+
+  return {
+    id: createRecipeId(name),
+    name,
+    type: "regular",
+    mealRole: parseCourse(record.course ?? ""),
+    dishCategory: parseDishCategory(record.category ?? ""),
+    description: "CSVインポートで登録した料理。",
+    servings: 4,
+    timeMinutes: importTimeMinutes,
+    hotcookSetting: isHotcook ? "ホットクック調理" : "通常調理",
+    hotcookMenuNumber: hotcookMenuNumber || undefined,
+    hotcookOperation: isHotcook
+      ? ["CSVの作り方に沿って準備する。", "ホットクックで加熱する。"]
+      : ["CSVの作り方に沿って調理する。"],
+    ingredients: csvRowsToRecipes(ingredientLines),
+    steps: instructionLines.length > 0 ? instructionLines : ["CSVの作り方を確認する。"],
+  };
+}
+
+function parseRecipesFromCsv(text: string) {
+  const rows = parseCsv(normalizeCsvText(text));
+  const [headerRow, ...bodyRows] = rows;
+
+  if (!headerRow) {
+    throw new Error("CSVにヘッダー行がありません。");
+  }
+
+  const headers = headerRow.map(normalizeHeader);
+  const missingColumns = requiredCsvColumns.filter((column) => !headers.includes(column));
+
+  if (missingColumns.length > 0) {
+    throw new Error(`CSV列が不足しています: ${missingColumns.join(", ")}`);
+  }
+
+  return bodyRows
+    .map((row) => {
+      const record = Object.fromEntries(
+        headers.map((header, index) => [header, row[index]?.trim() ?? ""]),
+      );
+      return createImportedRecipe(record);
+    })
+    .filter((recipe): recipe is Recipe => recipe !== null);
+}
+
 function formToRecipe(form: RecipeFormState, existingId?: string): Recipe {
   const name = form.name.trim();
   const id = existingId || form.id || createRecipeId(name);
@@ -150,6 +316,7 @@ function normalizeRecipe(recipe: Recipe): Recipe {
 }
 
 export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [password, setPassword] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
@@ -294,6 +461,53 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
     setStatus("初期データに戻しました。");
   }
 
+  async function handleCsvImport(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const importedRecipes = parseRecipesFromCsv(text);
+
+      if (importedRecipes.length === 0) {
+        setStatus("取り込める料理がありませんでした。");
+        return;
+      }
+
+      const existingNames = new Set(recipes.map((recipe) => recipe.name));
+      const duplicateNames = importedRecipes
+        .filter((recipe) => existingNames.has(recipe.name))
+        .map((recipe) => recipe.name);
+
+      if (duplicateNames.length > 0) {
+        const ok = window.confirm(
+          `同名の料理が ${duplicateNames.length} 件あります。上書きしますか？\n${duplicateNames.join("\n")}`,
+        );
+        if (!ok) {
+          setStatus("CSV取り込みをキャンセルしました。");
+          return;
+        }
+      }
+
+      const importedByName = new Map(importedRecipes.map((recipe) => [recipe.name, recipe]));
+      const nextRecipes = [
+        ...recipes.map((recipe) => {
+          const importedRecipe = importedByName.get(recipe.name);
+          if (!importedRecipe) return recipe;
+          importedByName.delete(recipe.name);
+          return { ...importedRecipe, id: recipe.id };
+        }),
+        ...Array.from(importedByName.values()),
+      ];
+
+      persist(nextRecipes, `${importedRecipes.length}件の料理をCSVから取り込みました。`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "CSVを読み込めませんでした。");
+    }
+  }
+
   if (!authenticated) {
     return (
       <form className="authPanel" onSubmit={handleAuthSubmit}>
@@ -390,10 +604,20 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
           <button type="button" onClick={handleNew}>
             新規追加
           </button>
+          <button type="button" onClick={() => fileInputRef.current?.click()}>
+            CSV取込
+          </button>
           <button type="button" className="ghostButton" onClick={handleReset}>
             初期化
           </button>
         </div>
+        <input
+          ref={fileInputRef}
+          className="hiddenFileInput"
+          type="file"
+          accept=".csv,text/csv"
+          onChange={handleCsvImport}
+        />
       </section>
 
       <form className="recipeForm" onSubmit={handleSubmit}>
