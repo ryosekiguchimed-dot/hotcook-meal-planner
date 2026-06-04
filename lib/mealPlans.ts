@@ -12,6 +12,7 @@ export type DayName = "月" | "火" | "水" | "木" | "金" | "土" | "日";
 export type MealPlanDay = {
   day: DayName;
   recipeId: string;
+  locked?: boolean;
 };
 
 export type MealPlanWeek = {
