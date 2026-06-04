@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { getMealPlanWeek, getShoppingListForWeek, type WeekKey } from "@/lib/mealPlans";
+import { getShoppingListForWeek, mealPlanWeeks, type WeekKey } from "@/lib/mealPlans";
+import { getHydratedMealPlanByKey, useStoredMealPlans } from "@/lib/mealPlanStorage";
 import { recipes as initialRecipes } from "@/lib/recipes";
 import { useStoredRecipes } from "@/lib/recipeStorage";
 
@@ -11,7 +12,8 @@ type ShoppingListClientProps = {
 
 export default function ShoppingListClient({ weekKey }: ShoppingListClientProps) {
   const recipes = useStoredRecipes(initialRecipes);
-  const weekPlan = getMealPlanWeek(weekKey, recipes);
+  const mealPlans = useStoredMealPlans(mealPlanWeeks);
+  const weekPlan = getHydratedMealPlanByKey(mealPlans, weekKey, recipes);
   const groups = getShoppingListForWeek(weekPlan);
   const freezerKitRecipes = weekPlan.days.filter((day) => day.recipe.type === "freezer-kit");
 
