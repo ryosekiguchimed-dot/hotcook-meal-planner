@@ -12,6 +12,11 @@ import {
   getMealRoleLabel,
   getRecipeTypeLabel,
 } from "@/lib/recipes";
+import {
+  clearStoredRecipes,
+  loadStoredRecipes,
+  saveRecipesToStorage,
+} from "@/lib/recipeStorage";
 
 type RecipeManagerProps = {
   initialRecipes: Recipe[];
@@ -31,7 +36,6 @@ type RecipeFormState = {
   hotcookOperationText: string;
 };
 
-const storageKey = "hotcook-meal-planner.recipes.v1";
 const importTimeMinutes = 30;
 const requiredCsvColumns = [
   "name",
@@ -306,15 +310,6 @@ function formToRecipe(form: RecipeFormState, existingId?: string): Recipe {
   };
 }
 
-function normalizeRecipe(recipe: Recipe): Recipe {
-  return {
-    ...recipe,
-    mealRole: recipe.mealRole ?? "main",
-    dishCategory: recipe.dishCategory ?? "meat",
-    hotcookMenuNumber: recipe.hotcookMenuNumber || undefined,
-  };
-}
-
 export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [password, setPassword] = useState("");
@@ -331,23 +326,18 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
   const [status, setStatus] = useState("初期データを読み込みました。");
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(storageKey);
-    if (!saved) return;
-
-    try {
-      const parsed = JSON.parse(saved) as Recipe[];
-      if (Array.isArray(parsed)) {
-        setRecipes(parsed.map(normalizeRecipe));
-        setStatus("保存済みの料理マスターを読み込みました。");
-      }
-    } catch {
-      setStatus("保存済みデータを読み込めませんでした。初期データを表示しています。");
+    const nextRecipes = loadStoredRecipes(initialRecipes);
+    if (nextRecipes === initialRecipes) {
+      return;
     }
+
+    setRecipes(nextRecipes);
+    setStatus("保存済みの料理マスターを読み込みました。");
   }, []);
 
   function persist(nextRecipes: Recipe[], message: string) {
     setRecipes(nextRecipes);
-    window.localStorage.setItem(storageKey, JSON.stringify(nextRecipes));
+    saveRecipesToStorage(nextRecipes);
     setStatus(message);
   }
 
@@ -454,7 +444,7 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
     const ok = window.confirm("この端末に保存した変更を消して、初期データに戻しますか？");
     if (!ok) return;
 
-    window.localStorage.removeItem(storageKey);
+    clearStoredRecipes();
     setRecipes(initialRecipes);
     setEditingId(null);
     setForm(createBlankForm());

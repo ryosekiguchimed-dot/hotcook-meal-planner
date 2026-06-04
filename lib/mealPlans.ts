@@ -3,7 +3,7 @@ import {
   type Recipe,
   type RecipeFilters,
   filterRecipes,
-  getRecipeById,
+  recipes,
 } from "./recipes";
 
 export type WeekKey = "last" | "current" | "next";
@@ -83,13 +83,20 @@ export function normalizeWeekKey(value?: string | string[]): WeekKey {
   return key === "last" || key === "next" ? key : "current";
 }
 
-export function getMealPlanWeek(key: WeekKey = "current"): HydratedMealPlanWeek {
+function findRecipeById(recipeId: string, recipeSource: Recipe[]) {
+  return recipeSource.find((recipe) => recipe.id === recipeId);
+}
+
+export function getMealPlanWeek(
+  key: WeekKey = "current",
+  recipeSource: Recipe[] = recipes,
+): HydratedMealPlanWeek {
   const week = mealPlanWeeks.find((plan) => plan.key === key) ?? mealPlanWeeks[1];
 
   return {
     ...week,
     days: week.days.map((day) => {
-      const recipe = getRecipeById(day.recipeId);
+      const recipe = findRecipeById(day.recipeId, recipeSource);
 
       if (!recipe) {
         throw new Error(`Recipe not found: ${day.recipeId}`);
@@ -112,16 +119,31 @@ export function getRecentRecipeIds(targetWeekId: string, windowWeeks = 4) {
   );
 }
 
-export function getAvailableRecipesForWeek(targetWeekId: string) {
+export function getAvailableRecipesForWeek(targetWeekId: string, recipeSource?: Recipe[]) {
   const recentRecipeIds = getRecentRecipeIds(targetWeekId);
+  if (recipeSource) {
+    return recipeSource.filter((recipe) => !recentRecipeIds.has(recipe.id));
+  }
+
   return filterRecipes({ excludeIds: recentRecipeIds });
 }
 
 export function getAvailableRecipesForWeekByFilter(
   targetWeekId: string,
   filters: Omit<RecipeFilters, "excludeIds"> = {},
+  recipeSource?: Recipe[],
 ) {
   const recentRecipeIds = getRecentRecipeIds(targetWeekId);
+  if (recipeSource) {
+    return recipeSource.filter((recipe) => {
+      if (recentRecipeIds.has(recipe.id)) return false;
+      if (filters.type && recipe.type !== filters.type) return false;
+      if (filters.mealRole && recipe.mealRole !== filters.mealRole) return false;
+      if (filters.dishCategory && recipe.dishCategory !== filters.dishCategory) return false;
+      return true;
+    });
+  }
+
   return filterRecipes({ ...filters, excludeIds: recentRecipeIds });
 }
 
