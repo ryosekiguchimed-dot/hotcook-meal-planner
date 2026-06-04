@@ -4,9 +4,53 @@ import { recipes as initialRecipes, type Recipe } from "./recipes";
 export const recipeStorageKey = "hotcook-meal-planner.recipes.v1";
 export const recipeStorageEvent = "hotcook-meal-planner:recipes-updated";
 
-export function normalizeStoredRecipe(recipe: Recipe): Recipe {
+type StoredRecipe = Omit<Recipe, "id"> & { id?: string };
+
+export function createRecipeSlug(name: string) {
+  return (
+    name
+      .trim()
+      .toLowerCase()
+      .normalize("NFKC")
+      .replace(/[^\p{Letter}\p{Number}]+/gu, "-")
+      .replace(/^-+|-+$/g, "") || "recipe"
+  );
+}
+
+export function createUniqueRecipeId(name: string, usedIds: Iterable<string> = []) {
+  const baseSlug = createRecipeSlug(name);
+  const usedIdSet = new Set(usedIds);
+  let nextId = baseSlug;
+  let suffix = 2;
+
+  while (usedIdSet.has(nextId)) {
+    nextId = `${baseSlug}-${suffix}`;
+    suffix += 1;
+  }
+
+  return nextId;
+}
+
+export function ensureRecipeIds(storedRecipes: StoredRecipe[], baseRecipes: Recipe[] = []) {
+  const baseIds = new Set(baseRecipes.map((recipe) => recipe.id));
+  const usedIds = new Set<string>();
+
+  return storedRecipes.map((recipe) => {
+    const candidateId = recipe.id?.trim();
+    const missingIdUsedIds = new Set([...baseIds, ...usedIds]);
+    const id = candidateId && !usedIds.has(candidateId)
+      ? candidateId
+      : createUniqueRecipeId(recipe.name, missingIdUsedIds);
+
+    usedIds.add(id);
+    return { ...recipe, id };
+  });
+}
+
+export function normalizeStoredRecipe(recipe: StoredRecipe): Recipe {
   return {
     ...recipe,
+    id: recipe.id ?? createUniqueRecipeId(recipe.name),
     mealRole: recipe.mealRole ?? "main",
     dishCategory: recipe.dishCategory ?? "meat",
     hotcookMenuNumber: recipe.hotcookMenuNumber || undefined,
@@ -16,10 +60,11 @@ export function normalizeStoredRecipe(recipe: Recipe): Recipe {
   };
 }
 
-export function mergeRecipes(baseRecipes: Recipe[], storedRecipes: Recipe[]) {
+export function mergeRecipes(baseRecipes: Recipe[], storedRecipes: StoredRecipe[]) {
   const merged = baseRecipes.map(normalizeStoredRecipe);
+  const normalizedStoredRecipes = ensureRecipeIds(storedRecipes, baseRecipes).map(normalizeStoredRecipe);
 
-  for (const storedRecipe of storedRecipes.map(normalizeStoredRecipe)) {
+  for (const storedRecipe of normalizedStoredRecipes) {
     const idIndex = merged.findIndex((recipe) => recipe.id === storedRecipe.id);
     if (idIndex !== -1) {
       merged[idIndex] = storedRecipe;
@@ -36,6 +81,10 @@ export function mergeRecipes(baseRecipes: Recipe[], storedRecipes: Recipe[]) {
   }
 
   return merged;
+}
+
+function hasMissingRecipeIds(recipes: StoredRecipe[]) {
+  return recipes.some((recipe) => !recipe.id?.trim());
 }
 
 function getBrowserStorage() {
@@ -58,7 +107,13 @@ export function loadStoredRecipes(baseRecipes: Recipe[] = initialRecipes) {
       return baseRecipes;
     }
 
-    const parsed = JSON.parse(saved) as Recipe[];
+    const parsed = JSON.parse(saved) as StoredRecipe[];
+    if (Array.isArray(parsed) && hasMissingRecipeIds(parsed)) {
+      const normalizedStoredRecipes = ensureRecipeIds(parsed, baseRecipes).map(normalizeStoredRecipe);
+      storage.setItem(recipeStorageKey, JSON.stringify(normalizedStoredRecipes));
+      return mergeRecipes(baseRecipes, normalizedStoredRecipes);
+    }
+
     return Array.isArray(parsed) ? mergeRecipes(baseRecipes, parsed) : baseRecipes;
   } catch {
     return baseRecipes;
@@ -66,12 +121,13 @@ export function loadStoredRecipes(baseRecipes: Recipe[] = initialRecipes) {
 }
 
 export function saveRecipesToStorage(recipes: Recipe[]) {
+  const recipesWithIds = ensureRecipeIds(recipes).map(normalizeStoredRecipe);
   const storage = getBrowserStorage();
   if (storage) {
-    storage.setItem(recipeStorageKey, JSON.stringify(recipes));
+    storage.setItem(recipeStorageKey, JSON.stringify(recipesWithIds));
   }
 
-  window.dispatchEvent(new CustomEvent(recipeStorageEvent, { detail: recipes }));
+  window.dispatchEvent(new CustomEvent(recipeStorageEvent, { detail: recipesWithIds }));
 }
 
 export function clearStoredRecipes() {
