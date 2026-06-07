@@ -6,7 +6,7 @@ import {
   type WeekKey,
   mealPlanWeeks,
 } from "./mealPlans";
-import { type Recipe } from "./recipes";
+import { noMealRecipe, type Recipe } from "./recipes";
 
 export const mealPlanStorageKey = "hotcook-meal-planner.meal-plans.v1";
 export const mealPlanStorageEvent = "hotcook-meal-planner:meal-plans-updated";
@@ -140,7 +140,7 @@ export function getRequiredRecipeType(day: DayName) {
 
 export function getCandidateRecipesForDay(day: DayName, recipes: Recipe[]) {
   const type = getRequiredRecipeType(day);
-  return recipes.filter((recipe) => recipe.type === type);
+  return recipes.filter((recipe) => recipe.id !== noMealRecipe.id && recipe.type === type);
 }
 
 function getPreviousRecipeIds(plans: MealPlanWeek[], targetWeek: MealPlanWeek, windowWeeks = 4) {
