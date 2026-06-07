@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { getShoppingListForWeek, mealPlanWeeks } from "@/lib/mealPlans";
 import { getHydratedMealPlanByKey, useStoredMealPlans } from "@/lib/mealPlanStorage";
-import { recipes as initialRecipes } from "@/lib/recipes";
+import { recipes as initialRecipes, withNoMealRecipe } from "@/lib/recipes";
 import { useStoredRecipes } from "@/lib/recipeStorage";
 
 export default function HomeClient() {
-  const recipes = useStoredRecipes(initialRecipes);
+  const storedRecipes = useStoredRecipes(initialRecipes);
+  const recipes = withNoMealRecipe(storedRecipes);
   const mealPlans = useStoredMealPlans(mealPlanWeeks);
   const weekPlan = getHydratedMealPlanByKey(mealPlans, "current", recipes);
   const freezerKitDays = weekPlan.days.filter((day) => day.recipe.type === "freezer-kit");
@@ -62,7 +63,7 @@ export default function HomeClient() {
           <span>通常調理</span>
         </div>
         <div>
-          <strong>{recipes.length}</strong>
+          <strong>{storedRecipes.length}</strong>
           <span>登録料理</span>
         </div>
         <div>
