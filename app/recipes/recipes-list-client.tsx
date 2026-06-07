@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   getDishCategoryLabel,
@@ -11,8 +12,22 @@ import { useStoredRecipes } from "@/lib/recipeStorage";
 
 export default function RecipesListClient() {
   const recipes = useStoredRecipes(initialRecipes);
-  const freezerRecipes = recipes.filter((recipe) => recipe.type === "freezer-kit");
-  const regularRecipes = recipes.filter((recipe) => recipe.type === "regular");
+  const [query, setQuery] = useState("");
+  const filteredRecipes = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return recipes;
+
+    return recipes.filter((recipe) =>
+      [
+        recipe.name,
+        recipe.hotcookSetting,
+        recipe.hotcookMenuNumber ?? "",
+        ...recipe.ingredients.map((ingredient) => ingredient.name),
+      ].some((value) => value.toLowerCase().includes(normalizedQuery)),
+    );
+  }, [query, recipes]);
+  const freezerRecipes = filteredRecipes.filter((recipe) => recipe.type === "freezer-kit");
+  const regularRecipes = filteredRecipes.filter((recipe) => recipe.type === "regular");
 
   return (
     <main className="screen withBottomNav">
@@ -31,6 +46,19 @@ export default function RecipesListClient() {
           </Link>
         </div>
       </header>
+
+      <section className="managerPanel recipeSearchPanel">
+        <label>
+          <span>料理を検索</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="料理名・材料・ホットクック設定"
+          />
+        </label>
+        <p className="formStatus">{filteredRecipes.length}品を表示中</p>
+      </section>
 
       <section className="recipeListSection">
         <div className="sectionHeader">
@@ -52,6 +80,7 @@ export default function RecipesListClient() {
               </small>
             </Link>
           ))}
+          {freezerRecipes.length === 0 ? <p className="emptyMessage">該当する冷凍ミールキットはありません。</p> : null}
         </div>
       </section>
 
@@ -75,6 +104,7 @@ export default function RecipesListClient() {
               </small>
             </Link>
           ))}
+          {regularRecipes.length === 0 ? <p className="emptyMessage">該当する通常料理はありません。</p> : null}
         </div>
       </section>
 

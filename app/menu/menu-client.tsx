@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { type DayName, mealPlanWeeks, type WeekKey } from "@/lib/mealPlans";
-import { recipes as initialRecipes } from "@/lib/recipes";
+import { noMealRecipe, recipes as initialRecipes, withNoMealRecipe } from "@/lib/recipes";
 import {
   generateMealPlanWeek,
   getCandidateRecipesForDay,
@@ -24,7 +24,8 @@ type MenuClientProps = {
 };
 
 export default function MenuClient({ weekKey }: MenuClientProps) {
-  const recipes = useStoredRecipes(initialRecipes);
+  const storedRecipes = useStoredRecipes(initialRecipes);
+  const recipes = withNoMealRecipe(storedRecipes);
   const mealPlans = useStoredMealPlans(mealPlanWeeks);
   const [targetWeekKey, setTargetWeekKey] = useState<"current" | "next">(
     weekKey === "next" ? "next" : "current",
@@ -128,13 +129,15 @@ export default function MenuClient({ weekKey }: MenuClientProps) {
                 <h2>{day.recipe.name}</h2>
               </div>
               <span className={`modePill ${day.recipe.type}`}>
-                {day.recipe.type === "freezer-kit" ? "冷凍キット" : "通常料理"}
+                {day.recipe.id === noMealRecipe.id
+                  ? "予定あり"
+                  : day.recipe.type === "freezer-kit" ? "冷凍キット" : "通常料理"}
               </span>
             </div>
 
             <p className="description">{day.recipe.description}</p>
 
-            <div className="infoGrid">
+            {day.recipe.id !== noMealRecipe.id ? <div className="infoGrid">
               <div>
                 <span>人数</span>
                 <strong>{day.recipe.servings}人分</strong>
@@ -153,11 +156,11 @@ export default function MenuClient({ weekKey }: MenuClientProps) {
                   <strong>{day.recipe.hotcookMenuNumber}</strong>
                 </div>
               ) : null}
-            </div>
+            </div> : null}
 
-            <Link className="inlineButton" href={`/recipes/${day.recipe.id}`}>
+            {day.recipe.id !== noMealRecipe.id ? <Link className="inlineButton" href={`/recipes/${day.recipe.id}`}>
               詳細を見る
-            </Link>
+            </Link> : null}
 
             <div className="dayEditControls">
               <button
@@ -194,6 +197,14 @@ export default function MenuClient({ weekKey }: MenuClientProps) {
                   <h3>{day.day}曜日に入れる料理</h3>
                 </div>
                 <div className="candidateList">
+                  <button
+                    type="button"
+                    className="noMealCandidate"
+                    onClick={() => handleReplaceDay(day.day, noMealRecipe.id)}
+                  >
+                    <strong>料理なし</strong>
+                    <small>外食・予定ありなど</small>
+                  </button>
                   {getCandidateRecipesForDay(day.day, recipes).map((candidate) => (
                     <button
                       type="button"
@@ -208,7 +219,7 @@ export default function MenuClient({ weekKey }: MenuClientProps) {
               </section>
             ) : null}
 
-            <section className="miniSection">
+            {day.recipe.id !== noMealRecipe.id ? <section className="miniSection">
               <h3>材料</h3>
               <ul className="chipList">
                 {day.recipe.ingredients.map((item) => (
@@ -217,16 +228,16 @@ export default function MenuClient({ weekKey }: MenuClientProps) {
                   </li>
                 ))}
               </ul>
-            </section>
+            </section> : null}
 
-            <section className="miniSection">
+            {day.recipe.id !== noMealRecipe.id ? <section className="miniSection">
               <h3>ホットクック手順</h3>
               <ol className="steps">
                 {day.recipe.steps.map((step) => (
                   <li key={step}>{step}</li>
                 ))}
               </ol>
-            </section>
+            </section> : null}
           </article>
         ))}
       </div>

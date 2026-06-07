@@ -341,6 +341,108 @@ function formToRecipe(form: RecipeFormState, existingId?: string, usedRecipeIds:
   };
 }
 
+type RecipeFieldsProps = {
+  form: RecipeFormState;
+  updateForm: <K extends keyof RecipeFormState>(key: K, value: RecipeFormState[K]) => void;
+};
+
+function RecipeFields({ form, updateForm }: RecipeFieldsProps) {
+  return (
+    <>
+      <label>
+        <span>料理名</span>
+        <input
+          value={form.name}
+          onChange={(event) => updateForm("name", event.target.value)}
+          placeholder="例: 鶏ももトマト煮"
+        />
+      </label>
+
+      <div className="formGrid">
+        <label>
+          <span>種別</span>
+          <select value={form.type} onChange={(event) => updateForm("type", event.target.value as RecipeType)}>
+            <option value="freezer-kit">冷凍ミールキット</option>
+            <option value="regular">通常料理</option>
+          </select>
+        </label>
+        <label>
+          <span>主菜/副菜</span>
+          <select value={form.mealRole} onChange={(event) => updateForm("mealRole", event.target.value as MealRole)}>
+            <option value="main">主菜</option>
+            <option value="side">副菜</option>
+          </select>
+        </label>
+        <label>
+          <span>料理カテゴリ</span>
+          <select
+            value={form.dishCategory}
+            onChange={(event) => updateForm("dishCategory", event.target.value as DishCategory)}
+          >
+            <option value="meat">肉料理</option>
+            <option value="fish">魚料理</option>
+            <option value="vegetable">野菜料理</option>
+          </select>
+        </label>
+        <label>
+          <span>調理時間</span>
+          <input
+            inputMode="numeric"
+            value={form.timeMinutes}
+            onChange={(event) => updateForm("timeMinutes", event.target.value)}
+            placeholder="30"
+          />
+        </label>
+      </div>
+
+      <label>
+        <span>ホットクック設定</span>
+        <input
+          value={form.hotcookSetting}
+          onChange={(event) => updateForm("hotcookSetting", event.target.value)}
+          placeholder="手動 煮物を作る まぜる"
+        />
+      </label>
+
+      <label>
+        <span>ホットクックメニュー番号</span>
+        <input
+          value={form.hotcookMenuNumber}
+          onChange={(event) => updateForm("hotcookMenuNumber", event.target.value)}
+          placeholder="任意入力"
+        />
+        <small>番号がない料理は空欄のまま登録できます。</small>
+      </label>
+
+      <label>
+        <span>材料</span>
+        <textarea
+          value={form.ingredientsText}
+          onChange={(event) => updateForm("ingredientsText", event.target.value)}
+          rows={5}
+        />
+        <small>1行に「材料名 / 分量 / カテゴリ」。カテゴリ: {ingredientCategories.join("、")}</small>
+      </label>
+
+      <label>
+        <span>作り方</span>
+        <textarea value={form.stepsText} onChange={(event) => updateForm("stepsText", event.target.value)} rows={4} />
+        <small>1行ずつ手順を入力します。</small>
+      </label>
+
+      <label>
+        <span>ホットクック操作</span>
+        <textarea
+          value={form.hotcookOperationText}
+          onChange={(event) => updateForm("hotcookOperationText", event.target.value)}
+          rows={4}
+        />
+        <small>操作手順を1行ずつ入力します。</small>
+      </label>
+    </>
+  );
+}
+
 export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [password, setPassword] = useState("");
@@ -350,6 +452,7 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
   const [recipes, setRecipes] = useState<Recipe[]>(initialRecipes);
   const [form, setForm] = useState<RecipeFormState>(createBlankForm());
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<RecipeFormState | null>(null);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | RecipeType>("all");
   const [roleFilter, setRoleFilter] = useState<"all" | MealRole>("all");
@@ -365,6 +468,26 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
     setRecipes(nextRecipes);
     setStatus("保存済みの料理マスターを読み込みました。");
   }, []);
+
+  useEffect(() => {
+    if (!editForm) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setEditingId(null);
+        setEditForm(null);
+      }
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [editForm]);
 
   function persist(nextRecipes: Recipe[], message: string) {
     setRecipes(nextRecipes);
@@ -383,7 +506,9 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
         !normalizedQuery ||
         recipe.name.toLowerCase().includes(normalizedQuery) ||
         recipe.hotcookSetting.toLowerCase().includes(normalizedQuery) ||
-        (recipe.hotcookMenuNumber ?? "").toLowerCase().includes(normalizedQuery);
+        (recipe.hotcookMenuNumber ?? "").toLowerCase().includes(normalizedQuery) ||
+        recipe.ingredients.some((ingredient) => ingredient.name.toLowerCase().includes(normalizedQuery)) ||
+        recipe.steps.some((step) => step.toLowerCase().includes(normalizedQuery));
 
       return matchesType && matchesRole && matchesCategory && matchesQuery;
     });
@@ -391,8 +516,6 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
 
   const freezerCount = recipes.filter((recipe) => recipe.type === "freezer-kit").length;
   const regularCount = recipes.filter((recipe) => recipe.type === "regular").length;
-  const isEditing = editingId !== null;
-
   async function handleAuthSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setAuthLoading(true);
@@ -423,14 +546,22 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  function updateEditForm<K extends keyof RecipeFormState>(key: K, value: RecipeFormState[K]) {
+    setEditForm((current) => current ? { ...current, [key]: value } : current);
+  }
+
   function handleEdit(recipe: Recipe) {
     setEditingId(recipe.id);
-    setForm(recipeToForm(recipe));
+    setEditForm(recipeToForm(recipe));
     setStatus(`${recipe.name} を編集中です。`);
   }
 
-  function handleNew() {
+  function closeEditModal() {
     setEditingId(null);
+    setEditForm(null);
+  }
+
+  function handleNew() {
     setForm(createBlankForm());
     setStatus("新規料理を入力できます。");
   }
@@ -443,23 +574,38 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
       return;
     }
 
-    const usedRecipeIds = recipes
-      .filter((current) => current.id !== editingId)
-      .map((current) => current.id);
-    const recipe = formToRecipe(form, editingId ?? undefined, usedRecipeIds);
+    const recipe = formToRecipe(form, undefined, recipes.map((current) => current.id));
 
     if (recipe.ingredients.length === 0) {
       setStatus("材料を1つ以上入力してください。");
       return;
     }
 
-    const nextRecipes = editingId
-      ? recipes.map((current) => (current.id === editingId ? recipe : current))
-      : [...recipes, recipe];
+    persist([...recipes, recipe], `${recipe.name} を追加しました。`);
+    setForm(createBlankForm());
+  }
 
-    persist(nextRecipes, editingId ? `${recipe.name} を更新しました。` : `${recipe.name} を追加しました。`);
-    setEditingId(recipe.id);
-    setForm(recipeToForm(recipe));
+  function handleEditSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingId || !editForm) return;
+
+    if (!editForm.name.trim()) {
+      setStatus("料理名を入力してください。");
+      return;
+    }
+
+    const usedRecipeIds = recipes.filter((current) => current.id !== editingId).map((current) => current.id);
+    const recipe = formToRecipe(editForm, editingId, usedRecipeIds);
+    if (recipe.ingredients.length === 0) {
+      setStatus("材料を1つ以上入力してください。");
+      return;
+    }
+
+    persist(
+      recipes.map((current) => current.id === editingId ? recipe : current),
+      `${recipe.name} を更新しました。`,
+    );
+    closeEditModal();
   }
 
   function handleDelete(recipe: Recipe) {
@@ -470,7 +616,7 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
     persist(nextRecipes, `${recipe.name} を削除しました。`);
 
     if (editingId === recipe.id) {
-      handleNew();
+      closeEditModal();
     }
   }
 
@@ -480,7 +626,7 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
 
     clearStoredRecipes();
     setRecipes(initialRecipes);
-    setEditingId(null);
+    closeEditModal();
     setForm(createBlankForm());
     setStatus("初期データに戻しました。");
   }
@@ -585,7 +731,7 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="料理名・設定"
+              placeholder="料理名・材料・設定・作り方"
             />
           </label>
           <label>
@@ -647,112 +793,13 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
       <form className="recipeForm" onSubmit={handleSubmit}>
         <div className="formHeader">
           <div>
-            <p className="eyebrow">{isEditing ? "編集" : "追加"}</p>
-            <h2>{isEditing ? form.name || "料理を編集中" : "新しい料理"}</h2>
+            <p className="eyebrow">追加</p>
+            <h2>新しい料理</h2>
           </div>
-          <button type="submit">{isEditing ? "更新" : "追加"}</button>
+          <button type="submit">追加</button>
         </div>
 
-        <label>
-          <span>料理名</span>
-          <input
-            value={form.name}
-            onChange={(event) => updateForm("name", event.target.value)}
-            placeholder="例: 鶏ももトマト煮"
-          />
-        </label>
-
-        <div className="formGrid">
-          <label>
-            <span>種別</span>
-            <select
-              value={form.type}
-              onChange={(event) => updateForm("type", event.target.value as RecipeType)}
-            >
-              <option value="freezer-kit">冷凍ミールキット</option>
-              <option value="regular">通常料理</option>
-            </select>
-          </label>
-          <label>
-            <span>主菜/副菜</span>
-            <select
-              value={form.mealRole}
-              onChange={(event) => updateForm("mealRole", event.target.value as MealRole)}
-            >
-              <option value="main">主菜</option>
-              <option value="side">副菜</option>
-            </select>
-          </label>
-          <label>
-            <span>料理カテゴリ</span>
-            <select
-              value={form.dishCategory}
-              onChange={(event) => updateForm("dishCategory", event.target.value as DishCategory)}
-            >
-              <option value="meat">肉料理</option>
-              <option value="fish">魚料理</option>
-              <option value="vegetable">野菜料理</option>
-            </select>
-          </label>
-          <label>
-            <span>調理時間</span>
-            <input
-              inputMode="numeric"
-              value={form.timeMinutes}
-              onChange={(event) => updateForm("timeMinutes", event.target.value)}
-              placeholder="30"
-            />
-          </label>
-        </div>
-
-        <label>
-          <span>ホットクック設定</span>
-          <input
-            value={form.hotcookSetting}
-            onChange={(event) => updateForm("hotcookSetting", event.target.value)}
-            placeholder="手動 煮物を作る まぜる"
-          />
-        </label>
-
-        <label>
-          <span>ホットクックメニュー番号</span>
-          <input
-            value={form.hotcookMenuNumber}
-            onChange={(event) => updateForm("hotcookMenuNumber", event.target.value)}
-            placeholder="任意入力"
-          />
-          <small>番号がない料理は空欄のまま登録できます。</small>
-        </label>
-
-        <label>
-          <span>材料</span>
-          <textarea
-            value={form.ingredientsText}
-            onChange={(event) => updateForm("ingredientsText", event.target.value)}
-            rows={5}
-          />
-          <small>1行に「材料名 / 分量 / カテゴリ」。カテゴリ: {ingredientCategories.join("、")}</small>
-        </label>
-
-        <label>
-          <span>作り方</span>
-          <textarea
-            value={form.stepsText}
-            onChange={(event) => updateForm("stepsText", event.target.value)}
-            rows={4}
-          />
-          <small>1行ずつ手順を入力します。</small>
-        </label>
-
-        <label>
-          <span>ホットクック操作</span>
-          <textarea
-            value={form.hotcookOperationText}
-            onChange={(event) => updateForm("hotcookOperationText", event.target.value)}
-            rows={4}
-          />
-          <small>操作手順を1行ずつ入力します。</small>
-        </label>
+        <RecipeFields form={form} updateForm={updateForm} />
 
         <p className="formStatus" aria-live="polite">{status}</p>
       </form>
@@ -783,6 +830,39 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
           </article>
         ))}
       </section>
+
+      {editingId && editForm ? (
+        <div className="modalBackdrop" role="presentation" onMouseDown={closeEditModal}>
+          <section
+            className="editModal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-modal-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <form className="recipeForm modalRecipeForm" onSubmit={handleEditSubmit}>
+              <div className="modalHeader">
+                <div>
+                  <p className="eyebrow">料理を編集</p>
+                  <h2 id="edit-modal-title">{editForm.name}</h2>
+                </div>
+                <button type="button" className="ghostButton" onClick={closeEditModal} aria-label="編集を閉じる">
+                  閉じる
+                </button>
+              </div>
+
+              <RecipeFields form={editForm} updateForm={updateEditForm} />
+
+              <div className="modalActions">
+                <button type="button" className="ghostButton" onClick={closeEditModal}>
+                  キャンセル
+                </button>
+                <button type="submit">保存</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

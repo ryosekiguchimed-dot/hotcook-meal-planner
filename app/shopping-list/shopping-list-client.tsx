@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { getShoppingListForWeek, mealPlanWeeks, type WeekKey } from "@/lib/mealPlans";
 import { getHydratedMealPlanByKey, useStoredMealPlans } from "@/lib/mealPlanStorage";
-import { recipes as initialRecipes } from "@/lib/recipes";
+import { recipes as initialRecipes, withNoMealRecipe } from "@/lib/recipes";
 import { useStoredRecipes } from "@/lib/recipeStorage";
 
 type ShoppingListClientProps = {
@@ -11,7 +11,7 @@ type ShoppingListClientProps = {
 };
 
 export default function ShoppingListClient({ weekKey }: ShoppingListClientProps) {
-  const recipes = useStoredRecipes(initialRecipes);
+  const recipes = withNoMealRecipe(useStoredRecipes(initialRecipes));
   const mealPlans = useStoredMealPlans(mealPlanWeeks);
   const weekPlan = getHydratedMealPlanByKey(mealPlans, weekKey, recipes);
   const groups = getShoppingListForWeek(weekPlan);

@@ -645,7 +645,8 @@ h3 {
   margin-top: 14px;
 }
 
-.historyDays a {
+.historyDays a,
+.historyNoMeal {
   display: grid;
   grid-template-columns: 36px 1fr;
   align-items: center;
@@ -657,6 +658,10 @@ h3 {
 
 .historyDays strong {
   font-size: 0.92rem;
+}
+
+.historyNoMeal {
+  color: var(--muted);
 }
 
 .managerShell {
@@ -708,6 +713,38 @@ h3 {
   display: grid;
   gap: 12px;
   padding: 14px;
+}
+
+.recipeSearchPanel label {
+  display: grid;
+  gap: 6px;
+}
+
+.recipeSearchPanel span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.recipeSearchPanel input {
+  min-height: 44px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.emptyMessage {
+  margin: 0;
+  padding: 14px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
 }
 
 .managerToolbar,
@@ -828,6 +865,75 @@ h3 {
 .recipeForm small {
   color: var(--muted);
   line-height: 1.45;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  align-items: end;
+  padding: 12px 0 0;
+  background: rgba(45, 34, 23, 0.5);
+}
+
+.editModal {
+  width: min(100%, 480px);
+  max-height: calc(100dvh - 12px);
+  margin: 0 auto;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  background: #fff8ef;
+  box-shadow: 0 -12px 36px rgba(45, 34, 23, 0.2);
+  overscroll-behavior: contain;
+}
+
+.modalRecipeForm {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.modalHeader {
+  position: sticky;
+  top: -16px;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -16px -16px 0;
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 248, 239, 0.96);
+  backdrop-filter: blur(12px);
+}
+
+.modalHeader h2 {
+  margin-top: 4px;
+  font-size: 1.08rem;
+}
+
+.modalActions {
+  position: sticky;
+  bottom: -16px;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0 -16px -16px;
+  padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: rgba(255, 248, 239, 0.96);
+  backdrop-filter: blur(12px);
+}
+
+.modalRecipeForm .ghostButton {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
 }
 
 .formStatus {

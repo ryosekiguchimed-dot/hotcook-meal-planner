@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { mealPlanWeeks } from "@/lib/mealPlans";
 import { hydrateMealPlanWeek, useStoredMealPlans } from "@/lib/mealPlanStorage";
-import { recipes as initialRecipes } from "@/lib/recipes";
+import { noMealRecipe, recipes as initialRecipes, withNoMealRecipe } from "@/lib/recipes";
 import { useStoredRecipes } from "@/lib/recipeStorage";
 
 export default function HistoryClient() {
-  const recipes = useStoredRecipes(initialRecipes);
+  const recipes = withNoMealRecipe(useStoredRecipes(initialRecipes));
   const mealPlans = useStoredMealPlans(mealPlanWeeks);
 
   return (
@@ -40,10 +40,17 @@ export default function HistoryClient() {
               </div>
               <div className="historyDays">
                 {hydratedWeek.days.map((day) => (
-                  <Link href={`/recipes/${day.recipe.id}`} key={day.day}>
-                    <span className="dayBadge">{day.day}</span>
-                    <strong>{day.recipe.name}</strong>
-                  </Link>
+                  day.recipe.id === noMealRecipe.id ? (
+                    <div className="historyNoMeal" key={day.day}>
+                      <span className="dayBadge">{day.day}</span>
+                      <strong>{day.recipe.name}</strong>
+                    </div>
+                  ) : (
+                    <Link href={`/recipes/${day.recipe.id}`} key={day.day}>
+                      <span className="dayBadge">{day.day}</span>
+                      <strong>{day.recipe.name}</strong>
+                    </Link>
+                  )
                 ))}
               </div>
             </article>
