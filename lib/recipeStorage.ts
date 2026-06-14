@@ -11,6 +11,10 @@ export const recipeStorageEvent = "hotcook-meal-planner:recipes-updated";
 
 type StoredRecipe = Omit<Recipe, "id"> & { id?: string };
 type StoredIngredient = Partial<Ingredient> & { name?: string; amount?: string; category?: string };
+type StoredRecipeSnapshot = {
+  version: 2;
+  recipes: StoredRecipe[];
+};
 
 const ingredientCategoryAliases: Record<string, IngredientCategory> = {
   肉: "肉・魚",
@@ -149,6 +153,21 @@ function hasMissingRecipeIds(recipes: StoredRecipe[]) {
   return recipes.some((recipe) => !recipe.id?.trim());
 }
 
+function isStoredRecipeSnapshot(value: unknown): value is StoredRecipeSnapshot {
+  if (!value || typeof value !== "object") return false;
+
+  const snapshot = value as Partial<StoredRecipeSnapshot>;
+  return snapshot.version === 2 && Array.isArray(snapshot.recipes);
+}
+
+function looksLikeFullRecipeSnapshot(recipes: StoredRecipe[], baseRecipes: Recipe[]) {
+  if (baseRecipes.length === 0) return true;
+
+  const baseIds = new Set(baseRecipes.map((recipe) => recipe.id));
+  const matchingBaseRecipeCount = recipes.filter((recipe) => recipe.id && baseIds.has(recipe.id)).length;
+  return matchingBaseRecipeCount >= Math.ceil(baseRecipes.length / 2);
+}
+
 function getBrowserStorage() {
   if (typeof window === "undefined" || !window.localStorage) {
     return null;
@@ -169,18 +188,25 @@ export function loadStoredRecipes(baseRecipes: Recipe[] = initialRecipes) {
       return baseRecipes;
     }
 
-    const parsed = JSON.parse(saved) as StoredRecipe[];
-    if (Array.isArray(parsed)) {
-      const normalizedStoredRecipes = ensureRecipeIds(parsed, baseRecipes).map(normalizeStoredRecipe);
-      const normalizedSaved = JSON.stringify(normalizedStoredRecipes);
-      if (hasMissingRecipeIds(parsed) || normalizedSaved !== saved) {
-        storage.setItem(recipeStorageKey, normalizedSaved);
-      }
+    const parsed = JSON.parse(saved) as unknown;
+    const storedRecipes = isStoredRecipeSnapshot(parsed)
+      ? parsed.recipes
+      : Array.isArray(parsed)
+        ? parsed as StoredRecipe[]
+        : null;
+    if (!storedRecipes) return baseRecipes;
 
-      return mergeRecipes(baseRecipes, normalizedStoredRecipes);
+    const normalizedStoredRecipes = ensureRecipeIds(storedRecipes, baseRecipes).map(normalizeStoredRecipe);
+    const recipes = isStoredRecipeSnapshot(parsed) || looksLikeFullRecipeSnapshot(storedRecipes, baseRecipes)
+      ? normalizedStoredRecipes
+      : mergeRecipes(baseRecipes, normalizedStoredRecipes);
+    const normalizedSnapshot: StoredRecipeSnapshot = { version: 2, recipes };
+    const normalizedSaved = JSON.stringify(normalizedSnapshot);
+    if (hasMissingRecipeIds(storedRecipes) || normalizedSaved !== saved) {
+      storage.setItem(recipeStorageKey, normalizedSaved);
     }
 
-    return baseRecipes;
+    return recipes;
   } catch {
     return baseRecipes;
   }
@@ -190,7 +216,8 @@ export function saveRecipesToStorage(recipes: Recipe[]) {
   const recipesWithIds = ensureRecipeIds(recipes).map(normalizeStoredRecipe);
   const storage = getBrowserStorage();
   if (storage) {
-    storage.setItem(recipeStorageKey, JSON.stringify(recipesWithIds));
+    const snapshot: StoredRecipeSnapshot = { version: 2, recipes: recipesWithIds };
+    storage.setItem(recipeStorageKey, JSON.stringify(snapshot));
   }
 
   window.dispatchEvent(new CustomEvent(recipeStorageEvent, { detail: recipesWithIds }));
