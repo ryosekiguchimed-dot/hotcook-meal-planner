@@ -449,7 +449,7 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
   const [authenticated, setAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [authMessage, setAuthMessage] = useState("管理画面を開くにはパスワードを入力してください。");
-  const [recipes, setRecipes] = useState<Recipe[]>(initialRecipes);
+  const [recipes, setRecipes] = useState<Recipe[]>(initialRecipes.filter((recipe) => recipe.id !== "no-meal"));
   const [form, setForm] = useState<RecipeFormState>(createBlankForm());
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -461,7 +461,7 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
   const [status, setStatus] = useState("初期データを読み込みました。");
 
   useEffect(() => {
-    const nextRecipes = loadStoredRecipes(initialRecipes);
+    const nextRecipes = loadStoredRecipes(initialRecipes).filter((recipe) => recipe.id !== "no-meal");
     if (nextRecipes === initialRecipes) {
       return;
     }

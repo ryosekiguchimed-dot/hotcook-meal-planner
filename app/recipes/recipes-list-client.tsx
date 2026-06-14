@@ -11,7 +11,7 @@ import {
 import { useStoredRecipes } from "@/lib/recipeStorage";
 
 export default function RecipesListClient() {
-  const recipes = useStoredRecipes(initialRecipes);
+  const recipes = useStoredRecipes(initialRecipes).filter((recipe) => recipe.id !== "no-meal");
   const [query, setQuery] = useState("");
   const filteredRecipes = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();

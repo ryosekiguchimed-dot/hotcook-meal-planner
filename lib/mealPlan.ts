@@ -8,14 +8,16 @@ export {
   getRecipeTypeLabel,
 } from "./recipes";
 export {
-  getAvailableRecipesForWeek,
-  getAvailableRecipesForWeekByFilter,
-  getMealPlanWeek,
-  getRecentRecipeIds,
+  addDays,
+  createEmptyMealPlanWeek,
+  getCurrentWeekStart,
   getShoppingListForWeek,
-  isRecipeAllowedForWeek,
+  getWeekLabel,
+  getWeekStart,
   mealPlanWeeks,
+  normalizeSelectedDate,
   normalizeWeekKey,
+  parseIsoDate,
 } from "./mealPlans";
 export type {
   DishCategory,
@@ -28,6 +30,7 @@ export type {
 } from "./recipes";
 export type {
   DayName,
+  DayCookingStatus,
   HydratedMealPlanDay,
   HydratedMealPlanWeek,
   MealPlanDay,

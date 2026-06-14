@@ -1,13 +1,11 @@
-import { normalizeWeekKey } from "@/lib/mealPlans";
+import { normalizeSelectedDate } from "@/lib/mealPlans";
 import MenuClient from "./menu-client";
 
 type MenuPageProps = {
-  searchParams?: Promise<{ week?: string | string[] }>;
+  searchParams?: Promise<{ date?: string | string[] }>;
 };
 
 export default async function MenuPage({ searchParams }: MenuPageProps) {
   const params = await searchParams;
-  const weekKey = normalizeWeekKey(params?.week);
-
-  return <MenuClient weekKey={weekKey} />;
+  return <MenuClient selectedDate={normalizeSelectedDate(params?.date)} />;
 }

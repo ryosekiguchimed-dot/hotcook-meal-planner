@@ -336,6 +336,155 @@ h3 {
   box-shadow: 0 8px 28px rgba(71, 52, 31, 0.08);
 }
 
+.calendarPanel {
+  padding: 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 8px 28px rgba(71, 52, 31, 0.08);
+}
+
+.calendarHeader {
+  display: grid;
+  grid-template-columns: 42px 1fr 42px;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.calendarHeader h2 {
+  text-align: center;
+}
+
+.calendarHeader button {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--accent-dark);
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.calendarWeekdays,
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.calendarWeekdays span {
+  padding: 4px 0;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.calendarGrid a {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.calendarGrid a.outsideMonth {
+  color: #b7b0a6;
+}
+
+.calendarGrid a.selectedWeek {
+  background: #f8f1e7;
+}
+
+.calendarGrid a.selectedDate {
+  border-color: var(--accent-dark);
+  color: #fff;
+  background: var(--accent-dark);
+}
+
+.calendarDot {
+  position: absolute;
+  bottom: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+.calendarDot.noMeal {
+  background: var(--muted);
+}
+
+.weekNavigation {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.weekNavigation a,
+.generateWeekButton {
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.generateWeekButton {
+  width: 100%;
+  border-color: var(--accent-dark);
+  color: #fff;
+  background: var(--accent-dark);
+}
+
+.mealDate {
+  margin: -2px 0 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.dayStatusSelect {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.dayStatusSelect span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.dayStatusSelect select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+}
+
+.noMealCard {
+  background: rgba(248, 241, 231, 0.9);
+}
+
 .generatorControls {
   display: grid;
   grid-template-columns: 1fr 1fr;
