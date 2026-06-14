@@ -754,6 +754,10 @@ h3 {
   gap: 10px;
 }
 
+.managerToolbar label:first-child {
+  grid-column: 1 / -1;
+}
+
 .managerToolbar label,
 .recipeForm label {
   display: grid;
@@ -891,6 +895,8 @@ h3 {
 }
 
 .modalRecipeForm {
+  min-height: 100%;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
   border: 0;
   border-radius: 0;
   box-shadow: none;
@@ -949,6 +955,7 @@ h3 {
 .managerList {
   display: grid;
   gap: 10px;
+  padding-bottom: 20px;
 }
 
 .managerRecipeRow {
@@ -987,9 +994,21 @@ h3 {
 
 @media (max-width: 390px) {
   .managerToolbar,
-  .formGrid,
-  .managerActions {
+  .formGrid {
     grid-template-columns: 1fr;
+  }
+
+  .managerToolbar label:first-child {
+    grid-column: auto;
+  }
+
+  .managerActions {
+    gap: 6px;
+  }
+
+  .managerActions button {
+    padding-inline: 6px;
+    font-size: 0.82rem;
   }
 }
 

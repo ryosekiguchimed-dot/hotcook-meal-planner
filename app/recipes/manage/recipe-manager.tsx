@@ -451,6 +451,7 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
   const [authMessage, setAuthMessage] = useState("管理画面を開くにはパスワードを入力してください。");
   const [recipes, setRecipes] = useState<Recipe[]>(initialRecipes);
   const [form, setForm] = useState<RecipeFormState>(createBlankForm());
+  const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<RecipeFormState | null>(null);
   const [query, setQuery] = useState("");
@@ -470,12 +471,11 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
   }, []);
 
   useEffect(() => {
-    if (!editForm) return;
+    if (!isAdding && !editForm) return;
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setEditingId(null);
-        setEditForm(null);
+        closeRecipeModal();
       }
     }
 
@@ -487,7 +487,7 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [editForm]);
+  }, [editForm, isAdding]);
 
   function persist(nextRecipes: Recipe[], message: string) {
     setRecipes(nextRecipes);
@@ -551,18 +551,23 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
   }
 
   function handleEdit(recipe: Recipe) {
+    setIsAdding(false);
     setEditingId(recipe.id);
     setEditForm(recipeToForm(recipe));
     setStatus(`${recipe.name} を編集中です。`);
   }
 
-  function closeEditModal() {
+  function closeRecipeModal() {
+    setIsAdding(false);
     setEditingId(null);
     setEditForm(null);
   }
 
   function handleNew() {
     setForm(createBlankForm());
+    setEditingId(null);
+    setEditForm(null);
+    setIsAdding(true);
     setStatus("新規料理を入力できます。");
   }
 
@@ -583,6 +588,7 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
 
     persist([...recipes, recipe], `${recipe.name} を追加しました。`);
     setForm(createBlankForm());
+    closeRecipeModal();
   }
 
   function handleEditSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -605,7 +611,7 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
       recipes.map((current) => current.id === editingId ? recipe : current),
       `${recipe.name} を更新しました。`,
     );
-    closeEditModal();
+    closeRecipeModal();
   }
 
   function handleDelete(recipe: Recipe) {
@@ -616,7 +622,7 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
     persist(nextRecipes, `${recipe.name} を削除しました。`);
 
     if (editingId === recipe.id) {
-      closeEditModal();
+      closeRecipeModal();
     }
   }
 
@@ -626,7 +632,7 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
 
     clearStoredRecipes();
     setRecipes(initialRecipes);
-    closeEditModal();
+    closeRecipeModal();
     setForm(createBlankForm());
     setStatus("初期データに戻しました。");
   }
@@ -788,21 +794,8 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
           accept=".csv,text/csv"
           onChange={handleCsvImport}
         />
-      </section>
-
-      <form className="recipeForm" onSubmit={handleSubmit}>
-        <div className="formHeader">
-          <div>
-            <p className="eyebrow">追加</p>
-            <h2>新しい料理</h2>
-          </div>
-          <button type="submit">追加</button>
-        </div>
-
-        <RecipeFields form={form} updateForm={updateForm} />
-
         <p className="formStatus" aria-live="polite">{status}</p>
-      </form>
+      </section>
 
       <section className="managerList" aria-label="料理一覧">
         {filteredRecipes.map((recipe) => (
@@ -829,35 +822,52 @@ export default function RecipeManager({ initialRecipes }: RecipeManagerProps) {
             </div>
           </article>
         ))}
+        {filteredRecipes.length === 0 ? (
+          <p className="emptyMessage">条件に一致する料理はありません。</p>
+        ) : null}
       </section>
 
-      {editingId && editForm ? (
-        <div className="modalBackdrop" role="presentation" onMouseDown={closeEditModal}>
+      {isAdding || (editingId && editForm) ? (
+        <div className="modalBackdrop" role="presentation" onMouseDown={closeRecipeModal}>
           <section
             className="editModal"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="edit-modal-title"
+            aria-labelledby="recipe-modal-title"
             onMouseDown={(event) => event.stopPropagation()}
           >
-            <form className="recipeForm modalRecipeForm" onSubmit={handleEditSubmit}>
+            <form
+              className="recipeForm modalRecipeForm"
+              onSubmit={isAdding ? handleSubmit : handleEditSubmit}
+            >
               <div className="modalHeader">
                 <div>
-                  <p className="eyebrow">料理を編集</p>
-                  <h2 id="edit-modal-title">{editForm.name}</h2>
+                  <p className="eyebrow">{isAdding ? "料理を追加" : "料理を編集"}</p>
+                  <h2 id="recipe-modal-title">
+                    {isAdding ? "新しい料理" : editForm?.name}
+                  </h2>
                 </div>
-                <button type="button" className="ghostButton" onClick={closeEditModal} aria-label="編集を閉じる">
+                <button
+                  type="button"
+                  className="ghostButton"
+                  onClick={closeRecipeModal}
+                  aria-label="入力画面を閉じる"
+                >
                   閉じる
                 </button>
               </div>
 
-              <RecipeFields form={editForm} updateForm={updateEditForm} />
+              {isAdding ? (
+                <RecipeFields form={form} updateForm={updateForm} />
+              ) : editForm ? (
+                <RecipeFields form={editForm} updateForm={updateEditForm} />
+              ) : null}
 
               <div className="modalActions">
-                <button type="button" className="ghostButton" onClick={closeEditModal}>
+                <button type="button" className="ghostButton" onClick={closeRecipeModal}>
                   キャンセル
                 </button>
-                <button type="submit">保存</button>
+                <button type="submit">{isAdding ? "追加する" : "保存"}</button>
               </div>
             </form>
           </section>
